@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Registration</title>
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        /* Student Registration */
+        .registration-section {
+            background-color: white;
+            padding: 30px;
+            margin-top: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .registration-section h3 {
+            color: #1f3c5b;
+            margin-top: 0;
+        }
+
+        .session-card {
+            border: 1px solid #dddddd;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+        }
+
+        .session-card h4 {
+            color: #1f3c5b;
+            margin-top: 0;
+        }
+
+        .session-card p {
+            margin: 8px 0;
+        }
+
+        .register-button {
+            margin-top: 10px;
+        }
+
+        .message {
+            display: none;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .enrolled {
+            color: #555555;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>Course Registration System</h1>
+
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="course-search.html">Course Search</a>
+            <a href="student-registration.html">Student Registration</a>
+            <a href="instructor-schedule.html">Instructor Schedule</a>
+            <a href="session-enrollment.html">Session Enrollment</a>
+        </nav>
+    </header>
+
+    <main>
+
+        <h2>Student Registration</h2>
+
+        <p>
+            Log in to view your enrolled sessions and register for available courses.
+        </p>
+
+
+        <!-- STUDENT LOGIN -->
+
+        <div class="login-box">
+
+            <h3>Student Login</h3>
+
+            <label for="student-id">Student ID</label>
+            <input
+                type="text"
+                id="student-id"
+                placeholder="Enter Student ID"
+            >
+
+            <label for="password">Password</label>
+            <input
+                type="password"
+                id="password"
+                placeholder="Enter Password"
+            >
+
+            <button type="button" onclick="loginStudent()">
+                Log In
+            </button>
+
+        </div>
+
+
+        <!-- LOGIN MESSAGE -->
+
+        <div id="login-message" class="message"></div>
+
+
+        <!-- CURRENTLY ENROLLED -->
+
+        <div class="registration-section">
+
+            <h3>Currently Enrolled Sessions</h3>
+
+            <div id="enrolled-sessions">
+
+                <div class="session-card">
+
+                    <h4>INFO 300 - Section 001</h4>
+
+                    <p>
+                        <strong>Days:</strong> MWF
+                    </p>
+
+                    <p>
+                        <strong>Time:</strong> 10:00 AM - 10:50 AM
+                    </p>
+
+                    <p>
+                        <strong>Location:</strong> Business Building 210
+                    </p>
+
+                    <p class="enrolled">
+                        Status: Enrolled
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- AVAILABLE SESSIONS -->
+
+        <div class="registration-section">
+
+            <h3>Available Sessions</h3>
+
+            <div id="available-sessions">
+
+                <div class="session-card">
+
+                    <h4>INFO 320 - Section 002</h4>
+
+                    <p>
+                        <strong>Days:</strong> TR
+                    </p>
+
+                    <p>
+                        <strong>Time:</strong> 1:00 PM - 2:15 PM
+                    </p>
+
+                    <p>
+                        <strong>Location:</strong> Business Building 305
+                    </p>
+
+                    <p>
+                        <strong>Enrollment:</strong>
+                        <span id="info320-count">24 / 25</span>
+                    </p>
+
+                    <button
+                        type="button"
+                        class="register-button"
+                        onclick="registerForCourse('INFO 320', 25)"
+                    >
+                        Register
+                    </button>
+
+                </div>
+
+
+                <div class="session-card">
+
+                    <h4>CS 301 - Section 001</h4>
+
+                    <p>
+                        <strong>Days:</strong> MW
+                    </p>
+
+                    <p>
+                        <strong>Time:</strong> 2:00 PM - 3:15 PM
+                    </p>
+
+                    <p>
+                        <strong>Location:</strong> Science Building 105
+                    </p>
+
+                    <p>
+                        <strong>Enrollment:</strong>
+                        <span id="cs301-count">30 / 35</span>
+                    </p>
+
+                    <button
+                        type="button"
+                        class="register-button"
+                        onclick="registerForCourse('CS 301', 35)"
+                    >
+                        Register
+                    </button>
+
+                </div>
+
+
+                <div class="session-card">
+
+                    <h4>BUS 301 - Section 001</h4>
+
+                    <p>
+                        <strong>Days:</strong> TR
+                    </p>
+
+                    <p>
+                        <strong>Time:</strong> 9:30 AM - 10:45 AM
+                    </p>
+
+                    <p>
+                        <strong>Location:</strong> Business Building 120
+                    </p>
+
+                    <p>
+                        <strong>Enrollment:</strong>
+                        <span id="bus301-count">40 / 40</span>
+                    </p>
+
+                    <button
+                        type="button"
+                        class="register-button"
+                        onclick="registerForCourse('BUS 301', 40)"
+                    >
+                        Register
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- REGISTRATION MESSAGE -->
+
+        <div id="registration-message" class="message"></div>
+
+    </main>
+
+
+    <script>
+
+        // Keep track of courses the student is already enrolled in
+        let enrolledCourses = ["INFO 300"];
+
+
+        // Student login
+        function loginStudent() {
+
+            const studentID =
+                document.getElementById("student-id").value.trim();
+
+            const password =
+                document.getElementById("password").value.trim();
+
+            const message =
+                document.getElementById("login-message");
+
+
+            if (studentID === "" || password === "") {
+
+                message.textContent =
+                    "Please enter your Student ID and password.";
+
+                message.className = "message error";
+                message.style.display = "block";
+
+                return;
+            }
+
+
+            message.textContent =
+                "Login successful. You can now register for sessions.";
+
+            message.className = "message success";
+            message.style.display = "block";
+        }
+
+
+        // Register the student for a course
+        function registerForCourse(course, maximumEnrollment) {
+
+            const message =
+                document.getElementById("registration-message");
+
+
+            // Make sure the student is logged in
+            const studentID =
+                document.getElementById("student-id").value.trim();
+
+            const password =
+                document.getElementById("password").value.trim();
+
+
+            if (studentID === "" || password === "") {
+
+                message.textContent =
+                    "Please log in before registering for a course.";
+
+                message.className = "message error";
+                message.style.display = "block";
+
+                return;
+            }
+
+
+            // Prevent duplicate registration
+            if (enrolledCourses.includes(course)) {
+
+                message.textContent =
+                    "You are already registered for " + course + ".";
+
+                message.className = "message error";
+                message.style.display = "block";
+
+                return;
+            }
+
+
+            // Get the enrollment count for the selected course
+            let countElement;
+
+            if (course === "INFO 320") {
+                countElement =
+                    document.getElementById("info320-count");
+            }
+            else if (course === "CS 301") {
+                countElement =
+                    document.getElementById("cs301-count");
+            }
+            else if (course === "BUS 301") {
+                countElement =
+                    document.getElementById("bus301-count");
+            }
+
+
+            const currentEnrollment =
+                parseInt(countElement.textContent.split("/")[0]);
+
+
+            // Prevent registration if the class is full
+            if (currentEnrollment >= maximumEnrollment) {
+
+                message.textContent =
+                    course + " is full. You cannot register for this session.";
+
+                message.className = "message error";
+                message.style.display = "block";
+
+                return;
+            }
+
+
+            // Add the course to the student's enrolled courses
+            enrolledCourses.push(course);
+
+
+            // Increase enrollment count
+            const newEnrollment = currentEnrollment + 1;
+
+            countElement.textContent =
+                newEnrollment + " / " + maximumEnrollment;
+
+
+            // Show success message
+            message.textContent =
+                "Successfully registered for " + course + ".";
+
+            message.className = "message success";
+            message.style.display = "block";
+        }
+
+    </script>
+
+</body>
+</html>
