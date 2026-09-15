@@ -1,0 +1,578 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Search - Online Course Registration</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            color: #222;
+        }
+
+        header {
+            background-color: #1f3a5f;
+            color: white;
+            padding: 20px 40px;
+        }
+
+        header h1 {
+            margin-bottom: 15px;
+        }
+
+        nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+        }
+
+        nav a:hover {
+            background-color: #315b89;
+        }
+
+        nav a.active {
+            background-color: #315b89;
+        }
+
+        main {
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .page-title {
+            margin-bottom: 10px;
+            color: #1f3a5f;
+        }
+
+        .description {
+            margin-bottom: 25px;
+            color: #555;
+        }
+
+        .search-box {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            margin-bottom: 30px;
+        }
+
+        .search-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 7px;
+        }
+
+        input,
+        select {
+            padding: 11px;
+            border: 1px solid #bbb;
+            border-radius: 5px;
+            font-size: 15px;
+        }
+
+        input:focus,
+        select:focus {
+            outline: 2px solid #315b89;
+        }
+
+        .button-row {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            border: none;
+            border-radius: 5px;
+            padding: 11px 20px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .search-button {
+            background-color: #1f3a5f;
+            color: white;
+        }
+
+        .search-button:hover {
+            background-color: #315b89;
+        }
+
+        .clear-button {
+            background-color: #ddd;
+            color: #222;
+        }
+
+        .clear-button:hover {
+            background-color: #c8c8c8;
+        }
+
+        .results-header {
+            color: #1f3a5f;
+            margin-bottom: 15px;
+        }
+
+        .result-count {
+            color: #555;
+            margin-bottom: 15px;
+        }
+
+        .course-card {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .course-card h3 {
+            color: #1f3a5f;
+            margin-bottom: 10px;
+        }
+
+        .course-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .course-info p {
+            padding: 8px;
+            background-color: #f4f6f8;
+            border-radius: 4px;
+        }
+
+        .register-link {
+            display: inline-block;
+            margin-top: 15px;
+            background-color: #1f3a5f;
+            color: white;
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 5px;
+        }
+
+        .register-link:hover {
+            background-color: #315b89;
+        }
+
+        .no-results {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            text-align: center;
+            color: #666;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #1f3a5f;
+            color: white;
+        }
+
+        @media (max-width: 750px) {
+            .search-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .course-info {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Online Course Registration System</h1>
+
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="course-search.html" class="active">Course Search</a>
+        <a href="student-registration.html">Student Registration</a>
+        <a href="instructor-schedule.html">Instructor Schedule</a>
+        <a href="session-enrollment.html">Session Enrollment</a>
+    </nav>
+</header>
+
+
+<main>
+
+    <h2 class="page-title">Course Search</h2>
+
+    <p class="description">
+        Search for available courses by department, instructor, or course number.
+    </p>
+
+
+    <!-- SEARCH FORM -->
+
+    <section class="search-box">
+
+        <div class="search-grid">
+
+            <div class="form-group">
+                <label for="department">Department</label>
+
+                <select id="department">
+                    <option value="">All Departments</option>
+                    <option value="Information Systems">Information Systems</option>
+                    <option value="Computer Science">Computer Science</option>
+                    <option value="Business">Business</option>
+                    <option value="Mathematics">Mathematics</option>
+                    <option value="English">English</option>
+                </select>
+            </div>
+
+
+            <div class="form-group">
+                <label for="instructor">Instructor</label>
+
+                <input
+                    type="text"
+                    id="instructor"
+                    placeholder="Enter instructor name">
+            </div>
+
+
+            <div class="form-group">
+                <label for="course-number">Course Number</label>
+
+                <input
+                    type="text"
+                    id="course-number"
+                    placeholder="Example: 301">
+            </div>
+
+        </div>
+
+
+        <div class="button-row">
+
+            <button
+                class="search-button"
+                onclick="searchCourses()">
+                Search Courses
+            </button>
+
+            <button
+                class="clear-button"
+                onclick="clearSearch()">
+                Clear
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- SEARCH RESULTS -->
+
+    <h2 class="results-header">Course Results</h2>
+
+    <p class="result-count" id="result-count">
+        Showing all available courses
+    </p>
+
+    <section id="course-results"></section>
+
+</main>
+
+
+<footer>
+    <p>Online Course Registration System</p>
+</footer>
+
+
+<script>
+
+    // Sample course data
+    const courses = [
+
+        {
+            department: "Information Systems",
+            number: "301",
+            name: "Database Management Systems",
+            instructor: "Michael McGarry",
+            credits: "3",
+            prerequisites: "INFO 201",
+            modality: "In-Person",
+            enrollment: "30 students"
+        },
+
+        {
+            department: "Information Systems",
+            number: "320",
+            name: "Systems Analysis and Design",
+            instructor: "Michael McGarry",
+            credits: "3",
+            prerequisites: "INFO 201",
+            modality: "Hybrid",
+            enrollment: "25 students"
+        },
+
+        {
+            department: "Computer Science",
+            number: "301",
+            name: "Web Application Development",
+            instructor: "Mark Zuckerberg",
+            credits: "3",
+            prerequisites: "CS 201",
+            modality: "Online",
+            enrollment: "35 students"
+        },
+
+        {
+            department: "Computer Science",
+            number: "350",
+            name: "Data Structures",
+            instructor: "Alan Turing",
+            credits: "3",
+            prerequisites: "CS 250",
+            modality: "In-Person",
+            enrollment: "30 students"
+        },
+
+        {
+            department: "Business",
+            number: "301",
+            name: "Business Analytics",
+            instructor: "Bill Gates",
+            credits: "3",
+            prerequisites: "BUS 200",
+            modality: "Hybrid",
+            enrollment: "40 students"
+        },
+
+        {
+            department: "Mathematics",
+            number: "200",
+            name: "Calculus II",
+            instructor: "Stephen Hawkings",
+            credits: "4",
+            prerequisites: "MATH 100",
+            modality: "In-Person",
+            enrollment: "35 students"
+        },
+
+        {
+            department: "English",
+            number: "301",
+            name: "Advanced Composition",
+            instructor: "William Shakespear",
+            credits: "3",
+            prerequisites: "ENGL 200",
+            modality: "Online",
+            enrollment: "25 students"
+        }
+
+    ];
+
+
+    // Display courses on the page
+    function displayCourses(courseList) {
+
+        const results = document.getElementById("course-results");
+
+        const resultCount = document.getElementById("result-count");
+
+        results.innerHTML = "";
+
+
+        // Show message if no courses match
+        if (courseList.length === 0) {
+
+            resultCount.textContent = "0 courses found.";
+
+            results.innerHTML = `
+                <div class="no-results">
+                    <h3>No Courses Found</h3>
+                    <p>
+                        No courses match your search criteria.
+                        Try changing your search options.
+                    </p>
+                </div>
+            `;
+
+            return;
+        }
+
+
+        // Update result count
+        resultCount.textContent =
+            courseList.length + " course(s) found.";
+
+
+        // Create a card for every matching course
+        courseList.forEach(function(course) {
+
+            results.innerHTML += `
+
+                <div class="course-card">
+
+                    <h3>
+                        ${course.department.substring(0, 4).toUpperCase()}
+                        ${course.number} -
+                        ${course.name}
+                    </h3>
+
+                    <p>
+                        This course is offered through the
+                        ${course.department} department.
+                    </p>
+
+
+                    <div class="course-info">
+
+                        <p>
+                            <strong>Department:</strong>
+                            ${course.department}
+                        </p>
+
+                        <p>
+                            <strong>Instructor:</strong>
+                            ${course.instructor}
+                        </p>
+
+                        <p>
+                            <strong>Credit Hours:</strong>
+                            ${course.credits}
+                        </p>
+
+                        <p>
+                            <strong>Prerequisites:</strong>
+                            ${course.prerequisites}
+                        </p>
+
+                        <p>
+                            <strong>Modality:</strong>
+                            ${course.modality}
+                        </p>
+
+                        <p>
+                            <strong>Maximum Enrollment:</strong>
+                            ${course.enrollment}
+                        </p>
+
+                    </div>
+
+
+                    <a
+                        href="student-registration.html"
+                        class="register-link">
+                        Register for Session
+                    </a>
+
+                </div>
+
+            `;
+
+        });
+
+    }
+
+
+    // Search function
+    function searchCourses() {
+
+        const department =
+            document.getElementById("department").value;
+
+        const instructor =
+            document.getElementById("instructor").value
+            .toLowerCase()
+            .trim();
+
+        const courseNumber =
+            document.getElementById("course-number").value
+            .toLowerCase()
+            .trim();
+
+
+        // Filter courses
+        const filteredCourses = courses.filter(function(course) {
+
+            const departmentMatch =
+                department === "" ||
+                course.department === department;
+
+
+            const instructorMatch =
+                instructor === "" ||
+                course.instructor.toLowerCase().includes(instructor);
+
+
+            const numberMatch =
+                courseNumber === "" ||
+                course.number.toLowerCase().includes(courseNumber);
+
+
+            return (
+                departmentMatch &&
+                instructorMatch &&
+                numberMatch
+            );
+
+        });
+
+
+        displayCourses(filteredCourses);
+
+    }
+
+
+    // Clear search fields and show all courses
+    function clearSearch() {
+
+        document.getElementById("department").value = "";
+
+        document.getElementById("instructor").value = "";
+
+        document.getElementById("course-number").value = "";
+
+        displayCourses(courses);
+
+    }
+
+
+    // Display all courses when page first opens
+    displayCourses(courses);
+
+</script>
+
+</body>
+</html>
+```
