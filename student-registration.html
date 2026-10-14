@@ -274,37 +274,85 @@
     <script>
 
         // Keep track of courses the student is already enrolled in
+
+        
+        // Test student accounts for the registration prototype
+        const studentAccounts = [
+            {
+                studentId: "1001001",
+                password: "TestPass123"
+            },
+            {
+                studentId: "1001002",
+                password: "TestPass456"
+            },
+            {
+                studentId: "1001003",
+                password: "TestPass789"
+            }
+        ];
+
+        // Track which student has successfully logged in
+        let loggedInStudentID = null;
+
+        
         let enrolledCourses = ["INFO 300"];
 
 
         // Student login
+        
+        // Student login
         function loginStudent() {
-
             const studentID =
                 document.getElementById("student-id").value.trim();
 
             const password =
-                document.getElementById("password").value.trim();
+                document.getElementById("password").value;
 
             const message =
                 document.getElementById("login-message");
 
-
+            // Require both fields
             if (studentID === "" || password === "") {
+                loggedInStudentID = null;
 
                 message.textContent =
                     "Please enter your Student ID and password.";
-
                 message.className = "message error";
                 message.style.display = "block";
-
                 return;
             }
 
+            // Find the student account
+            const student = studentAccounts.find(
+                account => account.studentId === studentID
+            );
+
+            // Check whether the student ID exists
+            if (!student) {
+                loggedInStudentID = null;
+
+                message.textContent = "Student ID not found.";
+                message.className = "message error";
+                message.style.display = "block";
+                return;
+            }
+
+            // Verify the password
+            if (student.password !== password) {
+                loggedInStudentID = null;
+
+                message.textContent = "Incorrect password.";
+                message.className = "message error";
+                message.style.display = "block";
+                return;
+            }
+
+            // Login succeeded
+            loggedInStudentID = student.studentId;
 
             message.textContent =
                 "Login successful. You can now register for sessions.";
-
             message.className = "message success";
             message.style.display = "block";
         }
@@ -315,27 +363,23 @@
 
             const message =
                 document.getElementById("registration-message");
-
-
-            // Make sure the student is logged in
+           
+            // Make sure the student has successfully logged in
             const studentID =
                 document.getElementById("student-id").value.trim();
 
-            const password =
-                document.getElementById("password").value.trim();
-
-
-            if (studentID === "" || password === "") {
-
+            if (
+                loggedInStudentID === null ||
+                loggedInStudentID !== studentID
+            ) {
                 message.textContent =
-                    "Please log in before registering for a course.";
+                    "Please log in with valid credentials before registering.";
 
                 message.className = "message error";
                 message.style.display = "block";
 
                 return;
             }
-
 
             // Prevent duplicate registration
             if (enrolledCourses.includes(course)) {
