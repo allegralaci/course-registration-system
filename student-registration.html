@@ -256,7 +256,7 @@
 
             const heading = document.createElement("h4");
             heading.textContent =
-                `${course.code} ${course.number} - Section ${session.section}`;
+                `${course.code} - Section ${session.section}`;
             card.appendChild(heading);
 
             const details = [
@@ -479,7 +479,7 @@
 
             if (sessionEnrollment[key] >= maximum) {
                 message.textContent =
-                    `${course.code} ${course.number}, Section ${session.section} is full.`;
+                    `${course.code}, Section ${session.section} is full.`;
 
                 message.className = "message error";
                 message.style.display = "block";
@@ -496,7 +496,7 @@
 
             // Show confirmation
             message.textContent =
-                `Successfully registered for ${course.code} ${course.number}, Section ${session.section}.`;
+                `Successfully registered for ${course.code}, Section ${session.section}.`;
 
             message.className = "message success";
             message.style.display = "block";
