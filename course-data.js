@@ -4,7 +4,7 @@
  * and student-registration.html
  */
 
-const courses = [
+const testCourses = [
     {
         code: "INFO 301",
         department: "Information Systems",
