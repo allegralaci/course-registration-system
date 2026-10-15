@@ -39,6 +39,21 @@
 
         .register-button {
             margin-top: 10px;
+            padding: 10px 18px;
+            background-color: #1f3c5b;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .register-button:hover {
+            background-color: #315b89;
+        }
+
+        .register-button:disabled {
+            background-color: #888888;
+            cursor: not-allowed;
         }
 
         .message {
@@ -62,6 +77,11 @@
         .enrolled {
             color: #555555;
             font-weight: bold;
+        }
+
+        .empty-message {
+            margin-top: 15px;
+            color: #555555;
         }
     </style>
 </head>
@@ -87,7 +107,6 @@
         <p>
             Log in to view your enrolled sessions and register for available courses.
         </p>
-
 
         <!-- STUDENT LOGIN -->
 
@@ -115,11 +134,9 @@
 
         </div>
 
-
         <!-- LOGIN MESSAGE -->
 
         <div id="login-message" class="message"></div>
-
 
         <!-- CURRENTLY ENROLLED -->
 
@@ -127,34 +144,9 @@
 
             <h3>Currently Enrolled Sessions</h3>
 
-            <div id="enrolled-sessions">
-
-                <div class="session-card">
-
-                    <h4>INFO 300 - Section 001</h4>
-
-                    <p>
-                        <strong>Days:</strong> MWF
-                    </p>
-
-                    <p>
-                        <strong>Time:</strong> 10:00 AM - 10:50 AM
-                    </p>
-
-                    <p>
-                        <strong>Location:</strong> Business Building 210
-                    </p>
-
-                    <p class="enrolled">
-                        Status: Enrolled
-                    </p>
-
-                </div>
-
-            </div>
+            <div id="enrolled-sessions"></div>
 
         </div>
-
 
         <!-- AVAILABLE SESSIONS -->
 
@@ -162,107 +154,9 @@
 
             <h3>Available Sessions</h3>
 
-            <div id="available-sessions">
-
-                <div class="session-card">
-
-                    <h4>INFO 320 - Section 002</h4>
-
-                    <p>
-                        <strong>Days:</strong> TR
-                    </p>
-
-                    <p>
-                        <strong>Time:</strong> 1:00 PM - 2:15 PM
-                    </p>
-
-                    <p>
-                        <strong>Location:</strong> Business Building 305
-                    </p>
-
-                    <p>
-                        <strong>Enrollment:</strong>
-                        <span id="info320-count">24 / 25</span>
-                    </p>
-
-                    <button
-                        type="button"
-                        class="register-button"
-                        onclick="registerForCourse('INFO 320', 25)"
-                    >
-                        Register
-                    </button>
-
-                </div>
-
-
-                <div class="session-card">
-
-                    <h4>CS 301 - Section 001</h4>
-
-                    <p>
-                        <strong>Days:</strong> MW
-                    </p>
-
-                    <p>
-                        <strong>Time:</strong> 2:00 PM - 3:15 PM
-                    </p>
-
-                    <p>
-                        <strong>Location:</strong> Science Building 105
-                    </p>
-
-                    <p>
-                        <strong>Enrollment:</strong>
-                        <span id="cs301-count">30 / 35</span>
-                    </p>
-
-                    <button
-                        type="button"
-                        class="register-button"
-                        onclick="registerForCourse('CS 301', 35)"
-                    >
-                        Register
-                    </button>
-
-                </div>
-
-
-                <div class="session-card">
-
-                    <h4>BUS 301 - Section 001</h4>
-
-                    <p>
-                        <strong>Days:</strong> TR
-                    </p>
-
-                    <p>
-                        <strong>Time:</strong> 9:30 AM - 10:45 AM
-                    </p>
-
-                    <p>
-                        <strong>Location:</strong> Business Building 120
-                    </p>
-
-                    <p>
-                        <strong>Enrollment:</strong>
-                        <span id="bus301-count">40 / 40</span>
-                    </p>
-
-                    <button
-                        type="button"
-                        class="register-button"
-                        onclick="registerForCourse('BUS 301', 40)"
-                    >
-                        Register
-                    </button>
-
-                </div>
-
-            </div>
+            <div id="available-sessions"></div>
 
         </div>
-
 
         <!-- REGISTRATION MESSAGE -->
 
@@ -270,14 +164,16 @@
 
     </main>
 
+    <!-- Load shared course and session data first -->
+    <script src="course-data.js"></script>
 
     <script>
-
-        // Keep track of courses the student is already enrolled in
-
-        
         // Test student accounts for the registration prototype
         const studentAccounts = [
+            {
+                studentId: "ID",
+                password: "password"
+            },
             {
                 studentId: "1001001",
                 password: "TestPass123"
@@ -295,12 +191,186 @@
         // Track which student has successfully logged in
         let loggedInStudentID = null;
 
-        
-        let enrolledCourses = ["INFO 300"];
+        // Track sessions enrolled in by the current student
+        const enrolledSessionIds = new Set();
 
+        // Keep track of session enrollment counts during this page visit
+        const sessionEnrollment = {};
 
-        // Student login
-        
+        // Find a session by its ID
+        function findSession(sessionId) {
+            for (const course of testCourses) {
+                if (!Array.isArray(course.sessions)) {
+                    continue;
+                }
+
+                const session = course.sessions.find(
+                    item => String(item.id) === String(sessionId)
+                );
+
+                if (session) {
+                    return {
+                        course: course,
+                        session: session
+                    };
+                }
+            }
+
+            return null;
+        }
+
+        // Initialize enrollment counts and any pre-enrolled sessions
+        function initializeSessions() {
+            testCourses.forEach(function(course) {
+                if (!Array.isArray(course.sessions)) {
+                    console.warn(
+                        "Course has no sessions array:",
+                        course.code,
+                        course.number,
+                        course.name
+                    );
+                    return;
+                }
+
+                course.sessions.forEach(function(session) {
+                    const sessionId = String(session.id);
+
+                    sessionEnrollment[sessionId] =
+                        Number(session.currentEnrollment ?? 0);
+
+                    if (session.initiallyEnrolled === true) {
+                        enrolledSessionIds.add(sessionId);
+                    }
+                });
+            });
+        }
+
+        // Build a session card from the shared course data
+        function createSessionCard(course, session, isEnrolled) {
+            const sessionId = String(session.id);
+            const current = sessionEnrollment[sessionId];
+            const maximum = Number(session.maximumEnrollment);
+
+            const card = document.createElement("div");
+            card.className = "session-card";
+
+            const heading = document.createElement("h4");
+            heading.textContent =
+                `${course.code} ${course.number} - Section ${session.section}`;
+            card.appendChild(heading);
+
+            const details = [
+                ["Course", course.name],
+                ["Instructor", course.instructor],
+                ["Department", course.department],
+                ["Days", session.days],
+                ["Time", session.startTime + " - " + session.endTime],
+                ["Location", session.location],
+                ["Modality", course.modality],
+                ["Credits", course.credits],
+                ["Enrollment", `${current} / ${maximum}`]
+            ];
+
+            details.forEach(function(detail) {
+                const paragraph = document.createElement("p");
+                const label = document.createElement("strong");
+
+                label.textContent = detail[0] + ": ";
+                paragraph.appendChild(label);
+                paragraph.appendChild(
+                    document.createTextNode(
+                        String(detail[1] ?? "Not specified")
+                    )
+                );
+
+                card.appendChild(paragraph);
+            });
+
+            if (isEnrolled) {
+                const status = document.createElement("p");
+                status.className = "enrolled";
+                status.textContent = "Status: Enrolled";
+                card.appendChild(status);
+            } else {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "register-button";
+                button.textContent =
+                    current >= maximum ? "Session Full" : "Register";
+
+                button.disabled = current >= maximum;
+
+                button.addEventListener("click", function() {
+                    registerForCourse(sessionId);
+                });
+
+                card.appendChild(button);
+            }
+
+            return card;
+        }
+
+        // Display all enrolled and available sessions
+        function displaySessions() {
+            const enrolledContainer =
+                document.getElementById("enrolled-sessions");
+
+            const availableContainer =
+                document.getElementById("available-sessions");
+
+            enrolledContainer.innerHTML = "";
+            availableContainer.innerHTML = "";
+
+            testCourses.forEach(function(course) {
+                if (!Array.isArray(course.sessions)) {
+                    console.warn(
+                        "Skipping course without sessions:",
+                        course.code,
+                        course.number,
+                        course.name
+                    );
+                    return;
+                }
+
+                course.sessions.forEach(function(session) {
+                    const sessionId = String(session.id);
+
+                    const isEnrolled =
+                        enrolledSessionIds.has(sessionId);
+
+                    const card = createSessionCard(
+                        course,
+                        session,
+                        isEnrolled
+                    );
+
+                    if (isEnrolled) {
+                        enrolledContainer.appendChild(card);
+                    } else {
+                        availableContainer.appendChild(card);
+                    }
+                });
+            });
+
+            if (enrolledContainer.children.length === 0) {
+                const emptyMessage = document.createElement("p");
+                emptyMessage.className = "empty-message";
+                emptyMessage.textContent =
+                    "You are not enrolled in any sessions yet.";
+
+                enrolledContainer.appendChild(emptyMessage);
+            }
+
+            if (availableContainer.children.length === 0) {
+                const emptyMessage = document.createElement("p");
+                emptyMessage.className = "empty-message";
+                emptyMessage.textContent =
+                    "No sessions are currently available to register for.";
+
+                availableContainer.appendChild(emptyMessage);
+            }
+        }
+
         // Student login
         function loginStudent() {
             const studentID =
@@ -318,6 +388,7 @@
 
                 message.textContent =
                     "Please enter your Student ID and password.";
+
                 message.className = "message error";
                 message.style.display = "block";
                 return;
@@ -353,21 +424,20 @@
 
             message.textContent =
                 "Login successful. You can now register for sessions.";
+
             message.className = "message success";
             message.style.display = "block";
         }
 
-
-        // Register the student for a course
-        function registerForCourse(course, maximumEnrollment) {
-
+        // Register the logged-in student for a specific session
+        function registerForCourse(sessionId) {
             const message =
                 document.getElementById("registration-message");
-           
-            // Make sure the student has successfully logged in
+
             const studentID =
                 document.getElementById("student-id").value.trim();
 
+            // Require a valid login
             if (
                 loggedInStudentID === null ||
                 loggedInStudentID !== studentID
@@ -377,76 +447,72 @@
 
                 message.className = "message error";
                 message.style.display = "block";
-
                 return;
             }
+
+            // Find the selected session
+            const result = findSession(sessionId);
+
+            if (!result) {
+                message.textContent = "Session not found.";
+                message.className = "message error";
+                message.style.display = "block";
+                return;
+            }
+
+            const course = result.course;
+            const session = result.session;
+            const key = String(session.id);
 
             // Prevent duplicate registration
-            if (enrolledCourses.includes(course)) {
-
+            if (enrolledSessionIds.has(key)) {
                 message.textContent =
-                    "You are already registered for " + course + ".";
+                    "You are already registered for this session.";
+
+                message.className = "message error";
+                message.style.display = "block";
+                return;
+            }
+
+            // Prevent registration when the session is full
+            const maximum = Number(session.maximumEnrollment);
+
+            if (sessionEnrollment[key] >= maximum) {
+                message.textContent =
+                    `${course.code} ${course.number}, Section ${session.section} is full.`;
 
                 message.className = "message error";
                 message.style.display = "block";
 
+                displaySessions();
                 return;
             }
 
+            // Add the session to the student's enrolled sessions
+            enrolledSessionIds.add(key);
 
-            // Get the enrollment count for the selected course
-            let countElement;
+            // Increase the displayed enrollment count
+            sessionEnrollment[key]++;
 
-            if (course === "INFO 320") {
-                countElement =
-                    document.getElementById("info320-count");
-            }
-            else if (course === "CS 301") {
-                countElement =
-                    document.getElementById("cs301-count");
-            }
-            else if (course === "BUS 301") {
-                countElement =
-                    document.getElementById("bus301-count");
-            }
-
-
-            const currentEnrollment =
-                parseInt(countElement.textContent.split("/")[0]);
-
-
-            // Prevent registration if the class is full
-            if (currentEnrollment >= maximumEnrollment) {
-
-                message.textContent =
-                    course + " is full. You cannot register for this session.";
-
-                message.className = "message error";
-                message.style.display = "block";
-
-                return;
-            }
-
-
-            // Add the course to the student's enrolled courses
-            enrolledCourses.push(course);
-
-
-            // Increase enrollment count
-            const newEnrollment = currentEnrollment + 1;
-
-            countElement.textContent =
-                newEnrollment + " / " + maximumEnrollment;
-
-
-            // Show success message
+            // Show confirmation
             message.textContent =
-                "Successfully registered for " + course + ".";
+                `Successfully registered for ${course.code} ${course.number}, Section ${session.section}.`;
 
             message.className = "message success";
             message.style.display = "block";
+
+            // Refresh the enrolled and available session lists
+            displaySessions();
         }
 
+        // Initialize and display sessions when the page opens
+        if (typeof testCourses !== "undefined" && Array.isArray(testCourses)) {
+            initializeSessions();
+            displaySessions();
+        } else {
+            document.getElementById("available-sessions").textContent =
+                "Course data could not be loaded. Check that course-data.js is in the same folder.";
+        }
     </script>
 
 </body>
