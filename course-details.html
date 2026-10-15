@@ -24,25 +24,126 @@
         <p>View course information before registering.</p>
 
         <section>
-            <h3>Course Information</h3>
-            <p><strong>Course Name:</strong> To be added</p>
-            <p><strong>Course Number:</strong> To be added</p>
-            <p><strong>Credits:</strong> To be added</p>
-            <p><strong>Professor:</strong> To be added</p>
-            <p><strong>Dates:</strong> To be added</p>
+            <h3>Select a Course</h3>
+            <label for="course-select">Choose a course:</label>
+            <select id="course-select"></select>
         </section>
 
         <section>
-            <h3>Available Session</h3>
-            <p><strong>Days:</strong> To be added</p>
-            <p><strong>Time:</strong> To be added</p>
-            <p><strong>Location:</strong> To be added</p>
-            <p><strong>Available Seats:</strong> To be added</p>
+            <h3>Course Information</h3>
+            <p><strong>Course Name:</strong> <span id="course-name"></span></p>
+            <p><strong>Course Number:</strong> <span id="course-number"></span></p>
+            <p><strong>Credits:</strong> <span id="course-credits"></span></p>
+            <p><strong>Professor:</strong> <span id="course-instructor"></span></p>
+            <p><strong>Prerequisites:</strong> <span id="course-prerequisites"></span></p>
+            <p><strong>Modality:</strong> <span id="course-modality"></span></p>
         </section>
 
-        <a href="student-registration.html">
-            Continue to Registration
-        </a>
+        <section>
+            <h3>Available Sessions</h3>
+            <div id="session-details"></div>
+        </section>
+
+        <p>
+            <a href="student-registration.html">Continue to Registration</a>
+        </p>
     </main>
+
+    <script src="course-data.js"></script>
+    <script>
+        const courseSelect = document.getElementById("course-select");
+        const courses = Array.isArray(testCourses) ? testCourses : [];
+        const allSessions = Array.isArray(sessions) ? sessions : [];
+
+        function displayCourse(course) {
+            document.getElementById("course-name").textContent = course.name;
+            document.getElementById("course-number").textContent = course.code;
+            document.getElementById("course-credits").textContent = course.credits;
+            document.getElementById("course-instructor").textContent = course.instructor;
+            document.getElementById("course-prerequisites").textContent =
+                course.prerequisites || "None listed";
+            document.getElementById("course-modality").textContent =
+                course.modality || "Not specified";
+
+            const courseSessions = allSessions.filter(
+                session => session.courseCode === course.code
+            );
+
+            const container = document.getElementById("session-details");
+            container.replaceChildren();
+
+            if (courseSessions.length === 0) {
+                container.textContent =
+                    "No session details are currently available for this course.";
+                return;
+            }
+
+            courseSessions.forEach(session => {
+                const section = document.createElement("section");
+                const heading = document.createElement("h4");
+                heading.textContent = "Section " + session.section;
+                section.appendChild(heading);
+
+                const details = [
+                    ["Meeting Days", session.days],
+                    ["Start Time", session.startTime],
+                    ["End Time", session.endTime],
+                    ["Location", session.location],
+                    ["Enrolled Students", session.currentEnrollment],
+                    ["Maximum Enrollment", session.maximumEnrollment],
+                    ["Available Seats", Math.max(
+                        0,
+                        session.maximumEnrollment - session.currentEnrollment
+                    )]
+                ];
+
+                details.forEach(([label, value]) => {
+                    const paragraph = document.createElement("p");
+                    const bold = document.createElement("strong");
+                    bold.textContent = label + ": ";
+                    paragraph.appendChild(bold);
+                    paragraph.appendChild(
+                        document.createTextNode(String(value ?? "Not available"))
+                    );
+                    section.appendChild(paragraph);
+                });
+
+                container.appendChild(section);
+            });
+        }
+
+        courses.forEach(course => {
+            const option = document.createElement("option");
+            option.value = course.code;
+            option.textContent = course.code + " - " + course.name;
+            courseSelect.appendChild(option);
+        });
+
+        courseSelect.addEventListener("change", () => {
+            const selectedCourse = courses.find(
+                course => course.code === courseSelect.value
+            );
+
+            if (selectedCourse) {
+                displayCourse(selectedCourse);
+            }
+        });
+
+        const requestedCourse =
+            new URLSearchParams(window.location.search).get("course");
+
+        if (courses.length > 0) {
+            const initialCourse = courses.find(
+                course => course.code === requestedCourse
+            ) || courses[0];
+
+            courseSelect.value = initialCourse.code;
+            displayCourse(initialCourse);
+        } else {
+            document.getElementById("session-details").textContent =
+                "Course data is not available yet.";
+        }
+    </script>
 </body>
 </html>
+
