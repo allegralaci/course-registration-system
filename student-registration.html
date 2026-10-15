@@ -211,7 +211,7 @@
         const enrolledSessionIds = new Set();
         // Course picked on the search page, e.g. student-registration.html?course=INFO%20320
         const selectedCode =
-            new URLSearchParams(window.located.search).get("course");
+            new URLSearchParams(window.location.search).get("course");
         // Keep track of session enrollment counts during this page visit
         const sessionEnrollment = {};
 
@@ -528,38 +528,38 @@
             displaySessions();
         }
 
-        //Show which course was chosen, or explain if it has no sessions
-        function showSelectedCourse() {
-            const box = document.getElementById("selected-course");
-
-            if (!selectedCode) {
-        return;
-    }
-
-    const course = testCourses.find(function(item) {
-        return item.code === selectedCode;
-    });
-
-    const hasSessions =
-        course && Array.isArray(course.sessions) && course.sessions.length > 0;
-
-    if (!course) {
-        box.innerHTML =
-            '<div class="message error" style="display:block;"></div>';
-        box.firstChild.textContent = "That course could not be found.";
-    } else if (!hasSessions) {
-        box.innerHTML =
-            '<div class="message error" style="display:block;"></div>';
-        box.firstChild.textContent =
-            course.code + " - " + course.name +
-            " has no sessions open for registration right now.";
-    } else {
-        box.innerHTML = '<div class="selected-banner"></div>';
-        box.firstChild.textContent =
-            "Selected course: " + course.code + " - " + course.name;
-        }
-    }
+            // Show which course was chosen, or explain if it has no sessions
+            function showSelectedCourse() {
+                const box = document.getElementById("selected-course");
+    
+                if (!selectedCode) {
+            return;
+            }
         
+            const course = testCourses.find(function(item) {
+                return item.code === selectedCode;
+            });
+        
+            const hasSessions =
+                course && Array.isArray(course.sessions) && course.sessions.length > 0;
+        
+            if (!course) {
+                box.innerHTML =
+                    '<div class="message error" style="display:block;"></div>';
+                box.firstChild.textContent = "That course could not be found.";
+            } else if (!hasSessions) {
+                box.innerHTML =
+                    '<div class="message error" style="display:block;"></div>';
+                box.firstChild.textContent =
+                    course.code + " - " + course.name +
+                    " has no sessions open for registration right now.";
+            } else {
+                box.innerHTML = '<div class="selected-banner"></div>';
+                box.firstChild.textContent =
+                    "Selected course: " + course.code + " - " + course.name;
+                }
+            }
+            
             // Initialize and display sessions when the page opens
            if (typeof testCourses !== "undefined" && Array.isArray(testCourses)) {
         // course-data.js keeps sessions in a separate list, so attach each
