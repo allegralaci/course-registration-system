@@ -1,9 +1,4 @@
-
-/*
- * Shared test data for course-search.html
- * and student-registration.html
- */
-
+// Shared course data
 const testCourses = [
     {
         code: "INFO 301",
@@ -14,7 +9,8 @@ const testCourses = [
         credits: 3,
         prerequisites: "INFO 201",
         modality: "In-Person",
-        maximumEnrollment: 30
+        maximumEnrollment: 30,
+        sessions: []
     },
     {
         code: "INFO 320",
@@ -25,7 +21,8 @@ const testCourses = [
         credits: 3,
         prerequisites: "INFO 201",
         modality: "Hybrid",
-        maximumEnrollment: 25
+        maximumEnrollment: 25,
+        sessions: []
     },
     {
         code: "CS 301",
@@ -36,7 +33,8 @@ const testCourses = [
         credits: 3,
         prerequisites: "CS 201",
         modality: "In-Person",
-        maximumEnrollment: 35
+        maximumEnrollment: 35,
+        sessions: []
     },
     {
         code: "CS 350",
@@ -47,7 +45,8 @@ const testCourses = [
         credits: 3,
         prerequisites: "CS 250",
         modality: "In-Person",
-        maximumEnrollment: 30
+        maximumEnrollment: 30,
+        sessions: []
     },
     {
         code: "BUS 301",
@@ -58,7 +57,8 @@ const testCourses = [
         credits: 3,
         prerequisites: "BUS 200",
         modality: "Hybrid",
-        maximumEnrollment: 40
+        maximumEnrollment: 40,
+        sessions: []
     },
     {
         code: "MATH 200",
@@ -69,7 +69,8 @@ const testCourses = [
         credits: 4,
         prerequisites: "MATH 100",
         modality: "In-Person",
-        maximumEnrollment: 35
+        maximumEnrollment: 35,
+        sessions: []
     },
     {
         code: "ENGL 301",
@@ -80,10 +81,12 @@ const testCourses = [
         credits: 3,
         prerequisites: "ENGL 200",
         modality: "Online",
-        maximumEnrollment: 25
+        maximumEnrollment: 25,
+        sessions: []
     }
 ];
 
+// Shared session data
 const sessions = [
     {
         id: "INFO320-002",
@@ -94,7 +97,8 @@ const sessions = [
         endTime: "2:15 PM",
         location: "Business Building 305",
         currentEnrollment: 24,
-        maximumEnrollment: 25
+        maximumEnrollment: 25,
+        initiallyEnrolled: false
     },
     {
         id: "CS301-001",
@@ -105,7 +109,8 @@ const sessions = [
         endTime: "3:15 PM",
         location: "Science Building 105",
         currentEnrollment: 30,
-        maximumEnrollment: 35
+        maximumEnrollment: 35,
+        initiallyEnrolled: false
     },
     {
         id: "BUS301-001",
@@ -116,6 +121,34 @@ const sessions = [
         endTime: "10:45 AM",
         location: "Business Building 120",
         currentEnrollment: 40,
-        maximumEnrollment: 40
+        maximumEnrollment: 40,
+        initiallyEnrolled: false
+    }
+];
+
+// Link each session to its corresponding course.
+sessions.forEach(function(session) {
+    const course = testCourses.find(function(course) {
+        return course.code === session.courseCode;
+    });
+
+    if (course) {
+        course.sessions.push(session);
+    }
+});
+
+// Shared student test accounts
+const studentAccounts = [
+    {
+        studentId: "1001001",
+        password: "TestPass123"
+    },
+    {
+        studentId: "1001002",
+        password: "TestPass456"
+    },
+    {
+        studentId: "1001003",
+        password: "TestPass789"
     }
 ];
