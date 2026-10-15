@@ -36,7 +36,19 @@
         .session-card p {
             margin: 8px 0;
         }
+        .session-card.selected {
+            border: 2px solid #1f3c5b;
+            background-color: #eef3f9;
+        }
 
+        .selected-banner {
+            background-color: #eef3f9;
+            border-left: 5px solid #1f3c5b;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+        
         .register-button {
             margin-top: 10px;
             padding: 10px 18px;
@@ -137,7 +149,11 @@
         <!-- LOGIN MESSAGE -->
 
         <div id="login-message" class="message"></div>
+        
+        <!-- COURSE CHOSEN ON THE SEARCH PAGE -->
 
+        <div id="selected-course"></div>
+        
         <!-- CURRENTLY ENROLLED -->
 
         <div class="registration-section">
@@ -193,7 +209,9 @@
 
         // Track sessions enrolled in by the current student
         const enrolledSessionIds = new Set();
-
+        // Course picked on the search page, e.g. student-registration.html?course=INFO%20320
+        const selectedCode =
+            new URLSearchParams(window.located.search).get("course");
         // Keep track of session enrollment counts during this page visit
         const sessionEnrollment = {};
 
@@ -254,6 +272,11 @@
             const card = document.createElement("div");
             card.className = "session-card";
 
+        // Highlight the sessions of the course chosen on the search page
+            if (selectedCode && course.code === selectedCode) {
+                card.classList.add("selected");
+            }
+            
             const heading = document.createElement("h4");
             heading.textContent =
                 `${course.code} - Section ${session.section}`;
@@ -505,11 +528,62 @@
             displaySessions();
         }
 
-        // Initialize and display sessions when the page opens
-        if (typeof testCourses !== "undefined" && Array.isArray(testCourses)) {
-            initializeSessions();
-            displaySessions();
-        } else {
+        //Show which course was chosen, or explain if it has no sessions
+        function showSelectedCourse() {
+            const box = document.getElementById("selected-course");
+
+            if (!selectedCode) {
+        return;
+    }
+
+    const course = testCourses.find(function(item) {
+        return item.code === selectedCode;
+    });
+
+    const hasSessions =
+        course && Array.isArray(course.sessions) && course.sessions.length > 0;
+
+    if (!course) {
+        box.innerHTML =
+            '<div class="message error" style="display:block;"></div>';
+        box.firstChild.textContent = "That course could not be found.";
+    } else if (!hasSessions) {
+        box.innerHTML =
+            '<div class="message error" style="display:block;"></div>';
+        box.firstChild.textContent =
+            course.code + " - " + course.name +
+            " has no sessions open for registration right now.";
+    } else {
+        box.innerHTML = '<div class="selected-banner"></div>';
+        box.firstChild.textContent =
+            "Selected course: " + course.code + " - " + course.name;
+        }
+    }
+        
+            // Initialize and display sessions when the page opens
+           if (typeof testCourses !== "undefined" && Array.isArray(testCourses)) {
+        // course-data.js keeps sessions in a separate list, so attach each
+        // session to its course (skipped if the data is already nested)
+        if (typeof sessions !== "undefined") {
+            testCourses.forEach(function(course) {
+                if (!Array.isArray(course.sessions)) {
+                    course.sessions = sessions.filter(function(session) {
+                        return session.courseCode === course.code;
+                    });
+                }
+            });
+        }
+
+        initializeSessions();
+        displaySessions();
+        showSelectedCourse();
+
+        // Scroll to the chosen course's session card(s)
+        const chosenCard = document.querySelector(".session-card.selected");
+        if (chosenCard) {
+            chosenCard.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+    } else {
             document.getElementById("available-sessions").textContent =
                 "Course data could not be loaded. Check that course-data.js is in the same folder.";
         }
