@@ -342,10 +342,16 @@
                     return Number.isFinite(value);
                 });
 
-            const maximumEnrollment =
-                enrollmentValues.length > 0
-                    ? enrollmentValues.join(", ")
-                    : "Not yet scheduled";
+            const maximumEnrollment = courseSessions.length > 0
+                ? courseSessions.map(function(session) {
+                return session.maximumEnrollment;
+            }).join(", ")
+            : course.maximumEnrollment;
+            
+           // const maximumEnrollment =
+                //enrollmentValues.length > 0
+                    //? enrollmentValues.join(", ")
+                  //  : "Not yet scheduled";
 
             const courseCode = course.code || "";
             const courseNumber = course.number || "";
