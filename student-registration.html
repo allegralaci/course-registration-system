@@ -120,38 +120,12 @@
         <h2>Student Registration</h2>
 
         <p>
-            Log in to view your enrolled sessions and register for available courses.
+            View your enrolled sessions and register for available courses.
         </p>
 
-        <!-- STUDENT LOGIN -->
+        <!-- WHO IS LOGGED IN -->
 
-        <div class="login-box">
-
-            <h3>Student Login</h3>
-
-            <label for="student-id">Student ID</label>
-            <input
-                type="text"
-                id="student-id"
-                placeholder="Enter Student ID"
-            >
-
-            <label for="password">Password</label>
-            <input
-                type="password"
-                id="password"
-                placeholder="Enter Password"
-            >
-
-            <button type="button" onclick="loginStudent()">
-                Log In
-            </button>
-
-        </div>
-
-        <!-- LOGIN MESSAGE -->
-
-        <div id="login-message" class="message"></div>
+        <p id="login-status"></p>
         
         <!-- COURSE CHOSEN ON THE SEARCH PAGE -->
 
@@ -206,9 +180,6 @@
   //              password: "TestPass789"
   //          }
   //      ];
-
-        // Track which student has successfully logged in
-        let loggedInStudentID = null;
 
         // Track sessions enrolled in by the current student
         const enrolledSessionIds = new Set();
@@ -396,78 +367,16 @@
                 availableContainer.appendChild(emptyMessage);
             }
         }
-
-        // Student login
-        function loginStudent() {
-            const studentID =
-                document.getElementById("student-id").value.trim();
-
-            const password =
-                document.getElementById("password").value;
-
-            const message =
-                document.getElementById("login-message");
-
-            // Require both fields
-            if (studentID === "" || password === "") {
-                loggedInStudentID = null;
-
-                message.textContent =
-                    "Please enter your Student ID and password.";
-
-                message.className = "message error";
-                message.style.display = "block";
-                return;
-            }
-
-            // Find the student account
-            const student = studentAccounts.find(
-                account => account.studentId === studentID
-            );
-
-            // Check whether the student ID exists
-            if (!student) {
-                loggedInStudentID = null;
-
-                message.textContent = "Student ID not found.";
-                message.className = "message error";
-                message.style.display = "block";
-                return;
-            }
-
-            // Verify the password
-            if (student.password !== password) {
-                loggedInStudentID = null;
-
-                message.textContent = "Incorrect password.";
-                message.className = "message error";
-                message.style.display = "block";
-                return;
-            }
-
-            // Login succeeded
-            loggedInStudentID = student.studentId;
-
-            message.textContent =
-                "Login successful. You can now register for sessions.";
-
-            message.className = "message success";
-            message.style.display = "block";
-        }
-
+        
         // Register the logged-in student for a specific session
         function registerForCourse(sessionId) {
             const message =
                 document.getElementById("registration-message");
 
-            const studentID =
-                document.getElementById("student-id").value.trim();
+        // Require a valid login (set by student-login.html)
+            const studentID = getLoggedInStudent();
 
-            // Require a valid login
-            if (
-                loggedInStudentID === null ||
-                loggedInStudentID !== studentID
-            ) {
+            if (studentID === null) {
                 message.textContent =
                     "Please log in with valid credentials before registering.";
 
@@ -576,7 +485,9 @@
                 }
             });
         }
-
+               
+          document.getElementById("login-status").textContent =
+            "Logged in as student " + getLoggedInStudent() + ".";     
         initializeSessions();
         displaySessions();
         showSelectedCourse();
