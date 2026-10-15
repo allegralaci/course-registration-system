@@ -45,7 +45,7 @@
         </section>
 
         <p>
-            <a href="student-registration.html">Continue to Registration</a>
+            <a id="continue-link" href="student-registration.html">Continue to Registration</a>
         </p>
     </main>
 
@@ -56,6 +56,8 @@
         const allSessions = Array.isArray(sessions) ? sessions : [];
 
         function displayCourse(course) {
+            document.getElementById("continue-link").href =
+            "student-registration.html?course=" + encodeURIComponent(course.code);
             document.getElementById("course-name").textContent = course.name;
             document.getElementById("course-number").textContent = course.code;
             document.getElementById("course-credits").textContent = course.credits;
