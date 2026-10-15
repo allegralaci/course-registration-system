@@ -1,11 +1,9 @@
 # Login Tests
 
-| Field           | Value                                               |
-| --------------- | --------------------------------------------------- |
-| User story      | User Story 1: Student Login                         |
-| Page under test | `student-registration.html` (Student Login section) |
-| Tester          | Benedict                                            |
-| Result          | 10 of 10 passed                                     |
+- **User story:** User Story 1: Student Login
+- **Page under test:** `student-registration.html` (Student Login section)
+- **Tester:** Benedict
+- **Result:** 10 of 10 passed
 
 **Acceptance criterion:** Given that a student has valid login information, when the
 student submits their login information, then the system allows the student to access
@@ -107,8 +105,8 @@ no student is logged in (refresh the page between tests).
 
 ## Notes
 
-- The test account list still contains a placeholder account (Student ID `ID`, password
-  `password`). It should be removed before the final review.
+- The test accounts are now stored in `course-data.js`, and the placeholder account
+  (Student ID `ID`, password `password`) has been removed.
 - `student-login.html` is a separate login page with no login logic yet. These tests cover
   the login on `student-registration.html`, which is the one connected to registration.
   The team should decide whether to connect or remove `student-login.html`.
