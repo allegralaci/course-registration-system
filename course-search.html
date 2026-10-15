@@ -41,10 +41,7 @@
             border-radius: 5px;
         }
 
-        nav a:hover {
-            background-color: #315b89;
-        }
-
+        nav a:hover,
         nav a.active {
             background-color: #315b89;
         }
@@ -227,25 +224,17 @@
     </nav>
 </header>
 
-
 <main>
-
     <h2 class="page-title">Course Search</h2>
 
     <p class="description">
         Search for available courses by department, instructor, or course number.
     </p>
 
-
-    <!-- SEARCH FORM -->
-
     <section class="search-box">
-
         <div class="search-grid">
-
             <div class="form-group">
                 <label for="department">Department</label>
-
                 <select id="department">
                     <option value="">All Departments</option>
                     <option value="Information Systems">Information Systems</option>
@@ -256,88 +245,69 @@
                 </select>
             </div>
 
-
             <div class="form-group">
                 <label for="instructor">Instructor</label>
-
                 <input
                     type="text"
                     id="instructor"
                     placeholder="Enter instructor name">
             </div>
 
-
             <div class="form-group">
                 <label for="course-number">Course Number</label>
-
                 <input
                     type="text"
                     id="course-number"
                     placeholder="Example: 301">
             </div>
-
         </div>
 
-
         <div class="button-row">
-
             <button
+                type="button"
                 class="search-button"
                 onclick="searchCourses()">
                 Search Courses
             </button>
 
             <button
+                type="button"
                 class="clear-button"
                 onclick="clearSearch()">
                 Clear
             </button>
-
         </div>
-
     </section>
-
-
-    <!-- SEARCH RESULTS -->
 
     <h2 class="results-header">Course Results</h2>
 
     <p class="result-count" id="result-count">
-        Showing all available courses
+        Loading courses...
     </p>
 
     <section id="course-results"></section>
-
 </main>
-
 
 <footer>
     <p>Online Course Registration System</p>
 </footer>
 
-<!-- Load shared course data first -->
+<!-- Load the shared course data before the page script. -->
 <script src="course-data.js"></script>
 
 <script>
-
-    // Use the shared course data from course-data.js
-    const courses = testCourses;
+    // Use the shared course list defined in course-data.js.
+    const courses = Array.isArray(testCourses) ? testCourses : [];
 
     console.log("Courses loaded:", courses);
 
-    // Display courses on the page
     function displayCourses(courseList) {
-
         const results = document.getElementById("course-results");
-
         const resultCount = document.getElementById("result-count");
 
         results.innerHTML = "";
 
-
-        // Show message if no courses match
-        if (courseList.length === 0) {
-
+        if (!Array.isArray(courseList) || courseList.length === 0) {
             resultCount.textContent = "0 courses found.";
 
             results.innerHTML = `
@@ -349,150 +319,130 @@
                     </p>
                 </div>
             `;
-
             return;
         }
 
-
-        // Update result count
         resultCount.textContent =
             courseList.length + " course(s) found.";
 
-
-        // Create a card for every matching course
         courseList.forEach(function(course) {
+            // Not every course necessarily has a scheduled session.
+            const courseSessions = Array.isArray(course.sessions)
+                ? course.sessions
+                : [];
 
-            results.innerHTML += `
+            const enrollmentValues = courseSessions
+                .map(function(session) {
+                    return Number(
+                        session.maximumEnrollment ??
+                        session.maxEnrollment
+                    );
+                })
+                .filter(function(value) {
+                    return Number.isFinite(value);
+                });
 
-                <div class="course-card">
+            const maximumEnrollment =
+                enrollmentValues.length > 0
+                    ? enrollmentValues.join(", ")
+                    : "Not yet scheduled";
 
-                    <h3>
-                        ${course.code} ${course.number} -
-                        ${course.name}
-                    </h3>
+            const courseCode = course.code || "";
+            const courseNumber = course.number || "";
+            const courseName = course.name || "Unnamed Course";
 
-                    <p>
-                        This course is offered through the
-                        ${course.department} department.
-                    </p>
+            const heading = courseCode && courseNumber &&
+                !courseCode.endsWith(courseNumber)
+                ? courseCode + " " + courseNumber
+                : (courseCode || courseNumber);
 
+            const card = document.createElement("div");
+            card.className = "course-card";
 
-                    <div class="course-info">
+            card.innerHTML = `
+                <h3></h3>
 
-                        <p>
-                            <strong>Department:</strong>
-                            ${course.department}
-                        </p>
+                <p class="course-description"></p>
 
-                        <p>
-                            <strong>Instructor:</strong>
-                            ${course.instructor}
-                        </p>
-
-                        <p>
-                            <strong>Credit Hours:</strong>
-                            ${course.credits}
-                        </p>
-
-                        <p>
-                            <strong>Prerequisites:</strong>
-                            ${course.prerequisites}
-                        </p>
-
-                        <p>
-                            <strong>Modality:</strong>
-                            ${course.modality}
-                        </p>
-
-                        <p>
-                            <strong>Maximum Enrollment:</strong>
-                            ${course.sessions[0].maxEnrollment}
-                        </p>
-
-                    </div>
-
-
-                    <a
-                        href="student-registration.html"
-                        class="register-link">
-                        Register for Session
-                    </a>
-
+                <div class="course-info">
+                    <p><strong>Department:</strong> ${course.department || "Not specified"}</p>
+                    <p><strong>Instructor:</strong> ${course.instructor || "Not assigned"}</p>
+                    <p><strong>Credit Hours:</strong> ${course.credits ?? "Not specified"}</p>
+                    <p><strong>Prerequisites:</strong> ${course.prerequisites || "None listed"}</p>
+                    <p><strong>Modality:</strong> ${course.modality || "Not specified"}</p>
+                    <p><strong>Maximum Enrollment:</strong> ${maximumEnrollment}</p>
                 </div>
 
+                <a href="student-registration.html" class="register-link">
+                    Register for Session
+                </a>
             `;
 
-        });
+            // Use textContent for course names to avoid interpreting them as HTML.
+            card.querySelector("h3").textContent =
+                (heading ? heading + " - " : "") + courseName;
 
+            card.querySelector(".course-description").textContent =
+                "This course is offered through the " +
+                (course.department || "unspecified") +
+                " department.";
+
+            results.appendChild(card);
+        });
     }
 
-
-    // Search function
     function searchCourses() {
-
         const department =
             document.getElementById("department").value;
 
         const instructor =
             document.getElementById("instructor").value
-            .toLowerCase()
-            .trim();
+                .toLowerCase()
+                .trim();
 
         const courseNumber =
             document.getElementById("course-number").value
-            .toLowerCase()
-            .trim();
+                .toLowerCase()
+                .trim();
 
-
-        // Filter courses
         const filteredCourses = courses.filter(function(course) {
-
             const departmentMatch =
                 department === "" ||
                 course.department === department;
 
-
             const instructorMatch =
                 instructor === "" ||
-                course.instructor.toLowerCase().includes(instructor);
-
+                String(course.instructor || "")
+                    .toLowerCase()
+                    .includes(instructor);
 
             const numberMatch =
                 courseNumber === "" ||
-                course.number.toLowerCase().includes(courseNumber);
+                String(course.number || "")
+                    .toLowerCase()
+                    .includes(courseNumber) ||
+                String(course.code || "")
+                    .toLowerCase()
+                    .includes(courseNumber);
 
-
-            return (
-                departmentMatch &&
+            return departmentMatch &&
                 instructorMatch &&
-                numberMatch
-            );
-
+                numberMatch;
         });
 
-
         displayCourses(filteredCourses);
-
     }
 
-
-    // Clear search fields and show all courses
     function clearSearch() {
-
         document.getElementById("department").value = "";
-
         document.getElementById("instructor").value = "";
-
         document.getElementById("course-number").value = "";
 
         displayCourses(courses);
-
     }
 
-
-    // Display all courses when page first opens
+    // Show every course when the page first opens.
     displayCourses(courses);
-
 </script>
 
 </body>
