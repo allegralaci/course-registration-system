@@ -315,91 +315,13 @@
     <p>Online Course Registration System</p>
 </footer>
 
+<!-- Load shared course data first -->
+<script src="course-data.js"></script>
 
 <script>
 
-    // Sample course data
-    const courses = [
-
-        {
-            department: "Information Systems",
-            number: "301",
-            name: "Database Management Systems",
-            instructor: "Michael McGarry",
-            credits: "3",
-            prerequisites: "INFO 201",
-            modality: "In-Person",
-            enrollment: "30 students"
-        },
-
-        {
-            department: "Information Systems",
-            number: "320",
-            name: "Systems Analysis and Design",
-            instructor: "Michael McGarry",
-            credits: "3",
-            prerequisites: "INFO 201",
-            modality: "Hybrid",
-            enrollment: "25 students"
-        },
-
-        {
-            department: "Computer Science",
-            number: "301",
-            name: "Web Application Development",
-            instructor: "Mark Zuckerberg",
-            credits: "3",
-            prerequisites: "CS 201",
-            modality: "Online",
-            enrollment: "35 students"
-        },
-
-        {
-            department: "Computer Science",
-            number: "350",
-            name: "Data Structures",
-            instructor: "Alan Turing",
-            credits: "3",
-            prerequisites: "CS 250",
-            modality: "In-Person",
-            enrollment: "30 students"
-        },
-
-        {
-            department: "Business",
-            number: "301",
-            name: "Business Analytics",
-            instructor: "Bill Gates",
-            credits: "3",
-            prerequisites: "BUS 200",
-            modality: "Hybrid",
-            enrollment: "40 students"
-        },
-
-        {
-            department: "Mathematics",
-            number: "200",
-            name: "Calculus II",
-            instructor: "Stephen Hawkings",
-            credits: "4",
-            prerequisites: "MATH 100",
-            modality: "In-Person",
-            enrollment: "35 students"
-        },
-
-        {
-            department: "English",
-            number: "301",
-            name: "Advanced Composition",
-            instructor: "William Shakespear",
-            credits: "3",
-            prerequisites: "ENGL 200",
-            modality: "Online",
-            enrollment: "25 students"
-        }
-
-    ];
-
+    // Use the shared course data from course-data.js
+    const courses = testCourses;
 
     // Display courses on the page
     function displayCourses(courseList) {
@@ -443,8 +365,7 @@
                 <div class="course-card">
 
                     <h3>
-                        ${course.department.substring(0, 4).toUpperCase()}
-                        ${course.number} -
+                        ${course.code} ${course.number} -
                         ${course.name}
                     </h3>
 
@@ -483,7 +404,7 @@
 
                         <p>
                             <strong>Maximum Enrollment:</strong>
-                            ${course.enrollment}
+                            ${course.sessions[0].maxEnrollment}
                         </p>
 
                     </div>
