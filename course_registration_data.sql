@@ -92,3 +92,14 @@ VALUES
 -- Session 5 (MKTG 302) is full: 3 of 3 seats, for testing SESSION_FULL.
 (7, 5, 'Enrolled'),
 (8, 5, 'Enrolled');
+
+INSERT INTO CompletedCourse (student_id, course_id)
+VALUES
+-- Student 5: Completed INFO 325.
+-- Can register for INFO 370 because its prerequisite is satisfied.
+(5, 3),
+
+-- Student 10: Completed INFO 325 and INFO 370.
+-- Can register for INFO 465 because its prerequisite is satisfied.
+(10, 3),
+(10, 2);
