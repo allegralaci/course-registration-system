@@ -56,9 +56,10 @@ app.post('/students/login', async (req, res) => {
   // Find the student in the database.
   try {
     const [students] = await db.query(
-      `SELECT student_id, first_name, last_name, password_hash
-       FROM Student
-       WHERE student_id = ?`,
+      `SELECT s.student_id, s.first_name, s.last_name, a.password_hash
+       FROM Student s
+       JOIN Account a ON a.student_id = s.student_id AND a.role = 'student'
+       WHERE s.student_id = ?`,
       [student_id]
     );
 
