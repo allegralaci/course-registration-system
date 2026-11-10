@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instructor Schedule</title>
     <link rel="stylesheet" href="style.css">
+    <script src="auth.js"></script>
+    <script>requirePage();</script>
 </head>
 
 <body>
@@ -14,7 +16,7 @@
    
 <nav>
     <a href="index.html">Home</a>
-    <a href="student-login.html">Student Login</a>
+    <a href="login.html">Log In</a>
     <a href="course-search.html">Course Search</a>
     <a href="course-details.html">Course Details</a>
     <a href="student-registration.html">Student Registration</a>
@@ -25,19 +27,7 @@
 
     <main>
         <h2>Instructor Schedule</h2>
-        <p>Log in to view your assigned course sessions.</p>
-
-        <div class="login-box">
-            <h3>Instructor Login</h3>
-
-            <label for="instructor-id">Instructor ID</label>
-            <input type="text" id="instructor-id" placeholder="Enter Instructor ID">
-
-            <label for="password">Password</label>
-            <input type="password" id="password" placeholder="Enter Password">
-
-            <button type="button">Log In</button>
-        </div>
+        <p>Your assigned course sessions.</p>
 
         <div class="schedule-section">
             <h3>Assigned Sessions</h3>

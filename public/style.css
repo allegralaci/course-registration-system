@@ -252,3 +252,8 @@ th {
     background-color: #f8d7da;
     color: #721c24;
 }
+
+/* Links hidden by auth.js for roles that may not open the page */
+[hidden] {
+    display: none !important;
+}
