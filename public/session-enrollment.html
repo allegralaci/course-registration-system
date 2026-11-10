@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Session Enrollment</title>
     <link rel="stylesheet" href="style.css" />
+    <script src="auth.js"></script>
+    <script>requirePage();</script>
   </head>
 
   <body>
@@ -13,7 +15,7 @@
  
 <nav>
     <a href="index.html">Home</a>
-    <a href="student-login.html">Student Login</a>
+    <a href="login.html">Log In</a>
     <a href="course-search.html">Course Search</a>
     <a href="course-details.html">Course Details</a>
     <a href="student-registration.html">Student Registration</a>
@@ -25,25 +27,9 @@
     <main>
       <h2>Session Enrollment</h2>
       <p>
-        View the list of students enrolled in a session. Accessible to
-        authorized users only.
+        View the list of students enrolled in a session. Only the session's
+        instructor and administrators can see its roster.
       </p>
-
-      <div class="login-box">
-        <h3>Authorized Access</h3>
-
-        <label for="access-id">Instructor / Admin ID</label>
-        <input type="text" id="access-id" placeholder="Enter ID" />
-
-        <label for="access-password">Password</label>
-        <input
-          type="password"
-          id="access-password"
-          placeholder="Enter Password"
-        />
-
-        <button type="button">View Roster</button>
-      </div>
 
       <div class="schedule-section">
         <h3>INFO 300 - Section 001</h3>

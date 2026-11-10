@@ -107,6 +107,13 @@ DB_USER=course_app
 DB_PASSWORD=the password you chose in step 3
 DB_NAME=course_registration
 PORT=3000
+JWT_SECRET=a long random value
+```
+
+`JWT_SECRET` signs login tokens, and nobody can log in without it. Make one with:
+
+```
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
 ### 5. Start the App
@@ -120,13 +127,23 @@ The terminal should print `Course registration system running on port 3000` foll
 - `http://localhost:3000` shows the home page.
 - `http://localhost:3000/health` shows `{"status":"ok","database":"connected"}`.
 
-Only the `Database connection OK` line and the `/health` page prove the database is connected. The pages themselves (search, login, registration) still use built-in sample data until the endpoints are built, so they load even when the database is off.
+Only the `Database connection OK` line and the `/health` page prove the database is connected.
 
 Press Ctrl+C in the terminal to stop the app.
 
 ### Test Accounts
 
-Every test student (student numbers 1001001 to 1001010) and instructor (IDs 1 to 6) in the database has the password `TestPass123`. These are fake accounts for testing only. The login page does not use them yet. Until the login endpoints are built, it checks three built-in accounts defined in `public/course-data.js`: `1001001` with `TestPass123`, `1001002` with `TestPass456`, and `1001003` with `TestPass789`.
+Everyone logs in on `login.html` with a username and password. These are fake accounts for testing only.
+
+| Role | Usernames | Password |
+| --- | --- | --- |
+| Student | `nreinoehl` | `TestPass123` |
+| Student | `jmiller` | `TestPass456` |
+| Student | `ecarter`, `jlee`, `dwhite`, `smartin`, `ogreen`, `jharris`, `eyoung`, `ascott` | `Pass1003` to `Pass1010`, in that order |
+| Instructor | `sjohnson`, `mbrown`, `dwilson`, `edavis`, `jsmith`, `mmcgarry` | `TestPass123` |
+| Administrator | `admin` | `AdminPass123` |
+
+After logging in, each role lands on its own page and the menu shows only the pages that role may open. Students go to Course Search, instructors to Instructor Schedule, and the administrator to Session Enrollment. The list of which roles may open each page is `PAGE_ROLES` in `public/auth.js`.
 
 ### Start the Database Over
 
@@ -161,7 +178,7 @@ Never commit your `.env` file or any password. This repository is public.
 ### Branches
 
 - `main` always works. It is the only branch deployed to AWS, and nobody commits to it directly.
-- Every task gets its own branch, named after its task ID in the Sprint 2 plan, in lowercase with hyphens. Examples: `t1-7-api-project`, `2-2-search-page`.
+- Every task gets its own branch, named after its task ID in the current sprint plan, in lowercase with hyphens. Examples: `t1-7-api-project`, `2-2-search-page`.
 - Before starting a task, get the latest `main` and create your branch from it.
 
 ### Commits

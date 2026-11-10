@@ -1,8 +1,9 @@
 // routes/sessions.js - GET /sessions/available and POST /sessions/:id/register.
-// Matches the endpoints described in API_CONTRACT.md. Both need a logged-in student.
+// Matches the endpoints described in API_CONTRACT.md. Both need a logged-in student,
+// checked by the shared requireRole in middleware/auth.js.
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const db = require('../db');
+const { requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -10,38 +11,10 @@ function sendError(res, status, code, message) {
   res.status(status).json({ error: { code, message } });
 }
 
-// Only lets a logged-in student through. The login endpoint gives the student
-// a token, and pages send it back in the header "Authorization: Bearer <token>".
-// If it is valid, the student's id is saved on req.student_id.
-function requireStudent(req, res, next) {
-  if (!process.env.JWT_SECRET) {
-    console.error('JWT_SECRET is not configured.');
-    return sendError(res, 500, 'SERVER_ERROR', 'Please try again later.');
-  }
-
-  const header = req.get('Authorization') || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : '';
-
-  try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
-
-    if (payload.role !== 'student') {
-      throw new Error('Not a student token');
-    }
-
-    req.student_id = payload.student_id;
-    next();
-  } catch (err) {
-    // Missing, expired, or fake tokens all get the same answer.
-    sendError(res, 401, 'NOT_LOGGED_IN',
-      'Please log in with valid credentials before registering.');
-  }
-}
-
 // GET /sessions/available - every session, with its course, instructor, and
 // enrolled_count. Full sessions are still listed so the page can show them
 // with a disabled button. Optional filter: ?course_id=
-router.get('/available', requireStudent, async (req, res) => {
+router.get('/available', requireRole('student'), async (req, res) => {
   const courseId = Number(req.query.course_id);
   const filter = Number.isInteger(courseId) && courseId > 0;
 
@@ -94,7 +67,7 @@ router.get('/available', requireStudent, async (req, res) => {
 
 // POST /sessions/:id/register - registers the logged-in student. The student
 // comes from the token, never from the request body.
-router.post('/:id/register', requireStudent, async (req, res) => {
+router.post('/:id/register', requireRole('student'), async (req, res) => {
   const sessionId = Number(req.params.id);
 
   if (!Number.isInteger(sessionId) || sessionId <= 0) {
