@@ -1,6 +1,6 @@
 # Course Registration System: API Contract
 
-Oct 27, 2026 · Ryan
+Oct 27, 2026 · Ryan. Updated for Sprint 3 (task S4): one login for every role, the role and ownership rules, the student schedule, instructor sessions, and roster endpoints, and the prerequisite error.
 
 ## What an API contract is, and the rules every endpoint follows
 
@@ -9,14 +9,15 @@ An API contract is the written agreement between the web pages and the server: f
 Field names below are the column names in `course_registration_schema.sql`. A value the API works out instead of storing is marked **computed**.
 
 - **Format:** requests and responses are JSON (`Content-Type: application/json`). Ids such as `student_id` are numbers, matching the `INT` columns.
-- **Paths:** exactly as written in the backlog, with no prefix.
-- **Auth:** the two login endpoints return a `token`. Every other endpoint needs `Authorization: Bearer <token>`.
-- **Ownership:** a student may only use `/students/{id}/...` with their own `student_id`, and an instructor only their own `instructor_id`. Anything else returns `403`.
-- **Rules live in the API, not the page:** the API never lets a session go over `max_enrollment` and never creates a duplicate registration. The seat check and the new `Enrollment` row happen in one database transaction, so two students cannot take the last seat at once.
+- **Paths:** exactly as written in the backlog and the sprint plan, with no prefix.
+- **Login:** `POST /login` is the one login for students, instructors, and administrators. It returns a `token` that holds the user's role. Every endpoint marked with a role below needs `Authorization: Bearer <token>`.
+- **Roles:** the API checks the role on every request, using the shared `requireRole` in `middleware/auth.js`. Hiding a page from a role is only a convenience. The API is what keeps data safe.
+- **Ownership:** a student may only use `/students/{id}/...` with their own `student_id`, and an instructor only `/instructors/{id}/...` with their own `instructor_id` (`requireOwnId` in `middleware/auth.js`). Anything else returns `403`.
+- **Rules live in the API, not the page:** the API never lets a session go over `max_enrollment`, never creates a duplicate registration, and never registers a student who is missing a prerequisite. These checks and the new `Enrollment` row happen in one database transaction, so two students cannot take the last seat at once.
 - **Errors** always use this shape, and `message` is the text the page shows:
 
 ```json
-{ "error": { "code": "SESSION_FULL", "message": "INFO 465, Section 001 is full." } }
+{ "error": { "code": "SESSION_FULL", "message": "MKTG 302, Section 001 is full." } }
 ```
 
 | Status | Meaning |
@@ -24,32 +25,78 @@ Field names below are the column names in `course_registration_schema.sql`. A va
 | 200 | Read succeeded |
 | 201 | A registration was created |
 | 400 | Missing or invalid input |
-| 401 | Not logged in, or login failed |
-| 403 | Logged in but not allowed (another student's data, a roster you may not see) |
-| 404 | The student, instructor, course, or session does not exist |
+| 401 | Not logged in, the token is missing or expired, or login failed |
+| 403 | Logged in, but this role or this user may not do it (another student's data, a roster you do not teach) |
+| 404 | The course or session does not exist |
 | 409 | A rule blocked it: session full, already registered, prerequisite not met |
+
+## Roles and access
+
+Every account has one role, stored in `Account.role`: `student`, `instructor`, or `administrator`.
+
+| Endpoint | Who may call it | Extra rule |
+| --- | --- | --- |
+| `POST /login` | Anyone | None |
+| `GET /courses`, `GET /courses/{id}` | Anyone, no token needed | None |
+| `GET /sessions/available` | `student` | None |
+| `POST /sessions/{id}/register` | `student` | Registers the student in the token, never one named in the request |
+| `GET /students/{id}/enrollments` | `student` | `{id}` must be the caller's own `student_id` |
+| `GET /instructors/{id}/sessions` | `instructor` | `{id}` must be the caller's own `instructor_id` |
+| `GET /sessions/{id}/roster` | `instructor`, `administrator` | An instructor must be the session's assigned instructor |
+| `POST /sessions`, `PUT /sessions/{id}` (future release) | `administrator` | None |
+
+The two checks every protected endpoint uses:
+
+| Check | Error | When |
+| --- | --- | --- |
+| Logged in | `401 NOT_LOGGED_IN`, "Please log in to continue." | No token, or an expired or invalid one |
+| Right role | `403 FORBIDDEN`, "You do not have access to this." | Valid token, but a role the endpoint does not allow |
+| Own records | `403 FORBIDDEN`, "You can only view your own records." | `{id}` in the path is not the caller's own id |
+
+**For endpoint builders.** Add the checks in the route, before the handler:
+
+```js
+const { requireRole, requireOwnId } = require('../middleware/auth');
+
+router.get('/:id/enrollments', requireRole('student'), requireOwnId('student_id'), handler);
+router.get('/:id/roster', requireRole('instructor', 'administrator'), handler);
+```
+
+Inside the handler, `req.user` holds `{ account_id, role, student_id, instructor_id }` from the token. `student_id` is set only for students and `instructor_id` only for instructors. Always take the user from `req.user`, never from the request body or query.
+
+**For page builders.** `public/auth.js` keeps the same rules for pages. Its `PAGE_ROLES` list says which roles may open each page. Call `requirePage()` in the page's `<head>` after loading `auth.js`, and use `apiFetch(path)` to call the API with the user's token. `getCurrentUser()` returns the logged-in user, including `role`, `student_id`, and `instructor_id`.
 
 ## Database tables and API fields
 
-The schema has six tables. Every field the API sends or accepts uses these column names unchanged.
+The schema has eight tables. Every field the API sends or accepts uses these column names unchanged.
 
 **Student**
 
 | Column | Type | Notes |
 | --- | --- | --- |
-| `student_id` | INT | Primary key, auto-generated |
-| `first_name` | VARCHAR(50) |  |
-| `last_name` | VARCHAR(50) |  |
-| `password_hash` | VARCHAR(255) | Hashed password, checked at login and never returned by the API |
+| `student_id` | INT | Primary key. The id used in API paths, such as `/students/1/enrollments`. |
+| `student_number` | VARCHAR(20) | The number a student knows, for example `1001001`. Unique. |
+| `first_name` | VARCHAR(50) | |
+| `last_name` | VARCHAR(50) | |
 
 **Instructor**
 
 | Column | Type | Notes |
 | --- | --- | --- |
 | `instructor_id` | INT | Primary key, auto-generated |
-| `first_name` | VARCHAR(50) |  |
-| `last_name` | VARCHAR(50) |  |
-| `password_hash` | VARCHAR(255) | Hashed password, checked at login and never returned by the API |
+| `first_name` | VARCHAR(50) | |
+| `last_name` | VARCHAR(50) | |
+
+**Account** (every login)
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `account_id` | INT | Primary key, auto-generated |
+| `username` | VARCHAR(50) | Unique. First initial plus last name, lowercase, for example `nreinoehl`. |
+| `password_hash` | VARCHAR(255) | bcrypt hash, checked at login and never returned by the API |
+| `role` | ENUM | `student`, `instructor`, or `administrator` |
+| `student_id` | INT | Set only for a student account. Refers to `Student.student_id`. |
+| `instructor_id` | INT | Set only for an instructor account. Refers to `Instructor.instructor_id`. |
 
 **Course**
 
@@ -58,8 +105,8 @@ The schema has six tables. Every field the API sends or accepts uses these colum
 | `course_id` | INT | Primary key, auto-generated |
 | `department` | VARCHAR(100) | For example `Information Systems` |
 | `number` | VARCHAR(20) | The full course code, for example `INFO 465` |
-| `name` | VARCHAR(100) |  |
-| `credits` | INT |  |
+| `name` | VARCHAR(100) | |
+| `credits` | INT | |
 
 **Session** (one section of a course)
 
@@ -67,7 +114,7 @@ The schema has six tables. Every field the API sends or accepts uses these colum
 | --- | --- | --- |
 | `session_id` | INT | Primary key, auto-generated |
 | `course_id` | INT | Refers to `Course.course_id` |
-| `instructor_id` | INT | Refers to `Instructor.instructor_id` |
+| `instructor_id` | INT | The assigned instructor. Refers to `Instructor.instructor_id`. |
 | `section` | VARCHAR(20) | For example `001` |
 | `days` | VARCHAR(50) | For example `MW` |
 | `time` | VARCHAR(50) | One text value, for example `09:00 AM - 10:15 AM` |
@@ -81,7 +128,9 @@ The schema has six tables. Every field the API sends or accepts uses these colum
 | `enrollment_id` | INT | Primary key, auto-generated |
 | `student_id` | INT | Refers to `Student.student_id` |
 | `session_id` | INT | Refers to `Session.session_id` |
-| `status` | VARCHAR(30) | `Enrolled` in the data script. The roster page also shows `Waitlisted`. |
+| `status` | VARCHAR(30) | `Enrolled` |
+
+The pair (`student_id`, `session_id`) is unique, so the database itself blocks a duplicate registration.
 
 **Prerequisite** (a course that must be completed first)
 
@@ -90,12 +139,23 @@ The schema has six tables. Every field the API sends or accepts uses these colum
 | `course_id` | INT | The course that has the requirement. Part of the primary key. |
 | `prerequisite_course_id` | INT | The course that must be done first. Part of the primary key. |
 
+**CompletedCourse** (courses a student has finished)
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `student_id` | INT | Part of the primary key. Refers to `Student.student_id`. |
+| `course_id` | INT | Part of the primary key. Refers to `Course.course_id`. |
+
+A prerequisite counts as met only when a `CompletedCourse` row exists for it. Being enrolled in the prerequisite this term does not count.
+
 **Values the API computes** (no column stores them)
 
 | Field | How it is worked out |
 | --- | --- |
 | `enrolled_count` | Number of `Enrollment` rows for the session whose `status` is `Enrolled`. Open seats = `max_enrollment` minus `enrolled_count`. |
+| `seats_left` | `max_enrollment` minus `enrolled_count`, never below 0. Only in `GET /courses/{id}`. |
 | `prerequisites` | The `Prerequisite` rows for a course, each returned as `{ "course_id", "number", "name" }` of the required course. |
+| `missing` | In a `PREREQUISITE_MISSING` error: the prerequisites the student has no `CompletedCourse` row for, in the same shape as `prerequisites`. |
 | `instructor` | The session's `Instructor` row, returned as `{ "instructor_id", "first_name", "last_name" }`. |
 | `course` | The session's `Course` row, returned as `{ "course_id", "department", "number", "name", "credits" }`. |
 
@@ -103,45 +163,58 @@ The schema has six tables. Every field the API sends or accepts uses these colum
 
 | Name | Where it appears | Meaning |
 | --- | --- | --- |
-| `password` | Login requests only | The password the user typed. It is compared with `password_hash`. |
-| `token` | Login responses | Proof of login, sent back in the `Authorization` header. Not stored in these tables. |
+| `password` | `POST /login` request only | The password the user typed. It is compared with `Account.password_hash`. |
+| `token` | `POST /login` response | Proof of login, sent back in the `Authorization` header. It holds `account_id`, `role`, `student_id`, and `instructor_id`, and expires after 2 hours. Not stored in any table. |
 | `count` | `GET /courses` | How many courses matched. |
 | `courses`, `sessions`, `students`, `enrollments` | List responses | The list of matching `Course`, `Session`, `Student`, or `Enrollment` rows. In a roster, each item in `students` is the `Student` columns plus the `Enrollment.status`. |
 | `enrollment`, `session` | `POST /sessions/{id}/register` 201 response | The new `Enrollment` row, and the session's `session_id`, `max_enrollment`, and updated `enrolled_count`. |
 | `error` with `code` and `message` | Every error response | See the error rules at the top. |
-| `missing` | `PREREQUISITE_MISSING` error | The course numbers the student still needs. |
 
-## Student endpoints
+## Login
 
-Five endpoints cover login, search, open sessions, registering, and the student's schedule. All except login need the student's token. The examples use the rows in `course_registration_data.sql`.
+### POST /login
 
-### POST /students/login
-
-Logs a student in. A student counts as logged in only when both the ID and the password check pass, so typing credentials into the form is never enough to register.
+Logs in a student, an instructor, or an administrator. A user counts as logged in only when both the username and the password check pass. Leading and trailing spaces in the username are ignored. Passwords are case-sensitive.
 
 **Request body**
 
 ```json
-{ "student_id": 1, "password": "<password>" }
+{ "username": "nreinoehl", "password": "<password>" }
 ```
 
-**200 response**
+**200 response.** Fields that do not apply to the role are `null`. An administrator has no `first_name` or `last_name`, so pages show the `username` instead.
 
 ```json
-{ "student_id": 1, "first_name": "Nathan", "last_name": "Reinoehl", "token": "<opaque string>" }
+{
+  "account_id": 1,
+  "username": "nreinoehl",
+  "role": "student",
+  "first_name": "Nathan",
+  "last_name": "Reinoehl",
+  "student_id": 1,
+  "student_number": "1001001",
+  "instructor_id": null,
+  "token": "<opaque string>"
+}
 ```
+
+An instructor gets `"role": "instructor"`, their `instructor_id`, and `null` for `student_id` and `student_number`.
 
 | Status | `error.code` | `error.message` |
 | --- | --- | --- |
-| 400 | `MISSING_FIELDS` | Please enter your Student ID and password. |
-| 401 | `STUDENT_NOT_FOUND` | Student ID not found. |
+| 400 | `MISSING_FIELDS` | Please enter your username and password. |
+| 401 | `USER_NOT_FOUND` | Username not found. |
 | 401 | `INCORRECT_PASSWORD` | Incorrect password. |
 
-The typed password is compared with `Student.password_hash`, which the API never returns.
+This replaces the Sprint 2 `POST /students/login` and the planned `POST /instructors/login`. Students log in with their username, such as `nreinoehl`, not a student number.
+
+## Student endpoints
+
+The examples use the rows in `course_registration_data.sql`.
 
 ### GET /courses
 
-Searches the course catalog. Every query parameter is optional, and they combine with AND. With none, it returns every course. Each course carries its sessions, because the instructor and the maximum enrollment are stored on `Session`.
+Searches the course catalog. Every query parameter is optional, and they combine with AND. With none, it returns every course. Each course carries its sessions, because the instructor and the maximum enrollment are stored on `Session`. No token is needed.
 
 | Query parameter | Matches |
 | --- | --- |
@@ -183,9 +256,18 @@ Searches the course catalog. Every query parameter is optional, and they combine
 
 A course with no sessions returns `"sessions": []`.
 
+### GET /courses/{id}
+
+Returns one course. `{id}` is the `course_id`. The shape matches one item of `GET /courses`, and each session also has `seats_left`. No token is needed.
+
+| Status | `error.code` | `error.message` |
+| --- | --- | --- |
+| 400 | `INVALID_ID` | Invalid course ID. |
+| 404 | `NOT_FOUND` | Course not found. |
+
 ### GET /sessions/available
 
-Lists the sessions open for registration, each with its course and instructor so the page can show a full card. A full session is still listed so the page can show it with a disabled button.
+**Role:** `student`. Lists the sessions open for registration, each with its course and instructor so the page can show a full card. A full session is still listed so the page can show it with a disabled button.
 
 | Query parameter | Matches |
 | --- | --- |
@@ -213,35 +295,65 @@ Lists the sessions open for registration, each with its course and instructor so
 }
 ```
 
+Errors: `401 NOT_LOGGED_IN` and `403 FORBIDDEN`, as in Roles and access.
+
 ### POST /sessions/{id}/register
 
-Registers the logged-in student for the session in the path. `{id}` is the `session_id`. The student comes from the token, so the body is empty. The API checks login, session, duplicate, prerequisites, and seats **before** it creates the `Enrollment` row.
+**Role:** `student`. Registers the logged-in student for the session in the path. `{id}` is the `session_id`. The student comes from the token, so the body is empty.
 
-**201 response.** Example: `POST /sessions/3/register` as student 1
+The API runs its checks in this order and stops at the first one that fails:
+
+1. Logged in as a student (`401`, `403`)
+2. The session exists (`404 SESSION_NOT_FOUND`)
+3. Not already registered for any section of this course (`409 ALREADY_REGISTERED`)
+4. Every prerequisite completed (`409 PREREQUISITE_MISSING`)
+5. A seat is open (`409 SESSION_FULL`)
+
+Checks 2 to 5 and the new `Enrollment` row happen in one transaction. A refused registration changes nothing: no `Enrollment` row is created and `enrolled_count` stays as it was.
+
+**201 response.** Example: `POST /sessions/3/register` as `jmiller` (student 2)
 
 ```json
 {
   "message": "Successfully registered for INFO 325, Section 001.",
-  "enrollment": { "enrollment_id": 12, "student_id": 1, "session_id": 3, "status": "Enrolled" },
+  "enrollment": { "enrollment_id": 14, "student_id": 2, "session_id": 3, "status": "Enrolled" },
   "session": { "session_id": 3, "max_enrollment": 20, "enrolled_count": 3 }
 }
 ```
 
 | Status | `error.code` | `error.message` |
 | --- | --- | --- |
-| 401 | `NOT_LOGGED_IN` | Please log in with valid credentials before registering. |
+| 401 | `NOT_LOGGED_IN` | Please log in to continue. |
+| 403 | `FORBIDDEN` | You do not have access to this. |
 | 404 | `SESSION_NOT_FOUND` | Session not found. |
 | 409 | `ALREADY_REGISTERED` | You are already registered for INFO 325. |
-| 409 | `SESSION_FULL` | INFO 325, Section 001 is full. |
-| 409 | `PREREQUISITE_MISSING` | Prerequisite not met: INFO 325. The error also carries `"missing": ["INFO 325"]`. |
+| 409 | `PREREQUISITE_MISSING` | You cannot register for INFO 370 until you complete INFO 325. |
+| 409 | `SESSION_FULL` | MKTG 302, Section 001 is full. |
 
-`ALREADY_REGISTERED` means the student already has an `Enrollment` for any session of the same course. A refused registration changes nothing: no `Enrollment` row is created and `enrolled_count` stays as it was.
+**The prerequisite error.** `PREREQUISITE_MISSING` is the only error with an extra field: `missing` lists every prerequisite the student has not completed, so the page can show each one. Example: `POST /sessions/2/register` (INFO 370) as `jmiller`, who has not completed INFO 325:
+
+```json
+{
+  "error": {
+    "code": "PREREQUISITE_MISSING",
+    "message": "You cannot register for INFO 370 until you complete INFO 325.",
+    "missing": [
+      { "course_id": 3, "number": "INFO 325", "name": "Systems Analysis" }
+    ]
+  }
+}
+```
+
+- `missing` is never empty, and it is sorted by course `number`.
+- When more than one is missing, the message joins the course numbers with commas and "and": "You cannot register for INFO 465 until you complete INFO 325 and INFO 370."
+- A course with no `Prerequisite` rows always passes this check.
+- In the test data, `dwhite` (student 5) has completed INFO 325, so registering for INFO 370 passes the check, and `ascott` (student 10) has completed INFO 325 and INFO 370, so INFO 465 passes.
 
 ### GET /students/{id}/enrollments
 
-Returns the sessions the student is registered in, and only that student's own records. `{id}` is the `student_id`.
+**Role:** `student`, own records only. Returns the sessions the student is registered in. `{id}` is the `student_id`, which the page takes from `getCurrentUser().student_id`. Sorted by course `number`.
 
-**200 response**
+**200 response.** Example: `GET /students/1/enrollments` as `nreinoehl`
 
 ```json
 {
@@ -266,41 +378,22 @@ Returns the sessions the student is registered in, and only that student's own r
 }
 ```
 
-A student with no registrations gets `200` with `"enrollments": []`. Another student's `{id}` returns `403 FORBIDDEN`.
+A student with no registrations gets `200` with `"enrollments": []`.
 
-## Instructor endpoints
-
-Three endpoints cover instructor login, the teaching schedule, and the session roster. The roster is restricted: only the session's assigned instructor and administrators can read it.
-
-### POST /instructors/login
-
-Logs an instructor in. It works like the student login but uses `instructor_id`.
-
-**Request body**
-
-```json
-{ "instructor_id": 1, "password": "<password>" }
-```
-
-**200 response**
-
-```json
-{ "instructor_id": 1, "first_name": "Sarah", "last_name": "Johnson", "token": "<opaque string>" }
-```
-
-| Status | `error.code` | `error.message` |
+| Status | `error.code` | When |
 | --- | --- | --- |
-| 400 | `MISSING_FIELDS` | Please enter your Instructor ID and password. |
-| 401 | `INSTRUCTOR_NOT_FOUND` | Instructor ID not found. |
-| 401 | `INCORRECT_PASSWORD` | Incorrect password. |
+| 401 | `NOT_LOGGED_IN` | No valid token |
+| 403 | `FORBIDDEN` | The caller is not a student, or `{id}` is a different student |
 
-Like the student login, the typed password is compared with `Instructor.password_hash`, which the API never returns.
+## Instructor and administrator endpoints
 
-### GET /instructors/{id}/schedule
+### GET /instructors/{id}/sessions
 
-Returns every session assigned to the logged-in instructor, meaning the `Session` rows whose `instructor_id` matches, and only theirs. `{id}` is the `instructor_id`. The fields match the columns of the Assigned Sessions table: Course, Section, Days, Time, Location.
+**Role:** `instructor`, own sessions only. Returns every session assigned to the logged-in instructor, meaning the `Session` rows whose `instructor_id` matches, and only theirs. `{id}` is the `instructor_id`, which the page takes from `getCurrentUser().instructor_id`. Sorted by course `number`, then `section`. The fields cover the Assigned Sessions table: Course, Section, Days, Time, Location.
 
-**200 response**
+This path replaces `GET /instructors/{id}/schedule` from the Sprint 2 draft, to match task 9.1 in the Sprint 3 plan.
+
+**200 response.** Example: `GET /instructors/1/sessions` as `sjohnson`
 
 ```json
 {
@@ -320,58 +413,68 @@ Returns every session assigned to the logged-in instructor, meaning the `Session
 }
 ```
 
+An instructor with no assigned sessions gets `200` with `"sessions": []`.
+
 | Status | `error.code` | When |
 | --- | --- | --- |
-| 401 | `NOT_LOGGED_IN` | No valid instructor token |
-| 403 | `FORBIDDEN` | `{id}` is a different instructor |
-| 404 | `INSTRUCTOR_NOT_FOUND` | No instructor with that `instructor_id` |
+| 401 | `NOT_LOGGED_IN` | No valid token |
+| 403 | `FORBIDDEN` | The caller is not an instructor, or `{id}` is a different instructor |
 
 ### GET /sessions/{id}/roster
 
-Returns the students in one session. `{id}` is the `session_id`. The columns match the roster table (Student ID, Name, Status), plus the enrolled count against the maximum. `students` lists every `Enrollment` row for the session, while `enrolled_count` counts only those with `status` `Enrolled`.
+**Role:** `instructor` (assigned to this session) or `administrator`. Returns the students in one session. `{id}` is the `session_id`. The columns match the roster table (Student ID, Name, Status), plus the enrolled count against the maximum. Students are sorted by `last_name`, then `first_name`. Each student shows `student_number`, the ID a person recognizes.
 
-**200 response**
+**200 response.** Example: `GET /sessions/1/roster` as `sjohnson` or `admin`
 
 ```json
 {
   "session_id": 1,
   "section": "001",
+  "days": "MW",
+  "time": "09:00 AM - 10:15 AM",
+  "location": "Online",
   "course": { "course_id": 1, "number": "INFO 465", "name": "Cloud Computing" },
   "enrolled_count": 3,
   "max_enrollment": 25,
   "students": [
-    { "student_id": 1, "first_name": "Nathan", "last_name": "Reinoehl", "status": "Enrolled" },
-    { "student_id": 2, "first_name": "John", "last_name": "Miller", "status": "Enrolled" },
-    { "student_id": 7, "first_name": "Olivia", "last_name": "Green", "status": "Enrolled" }
+    { "student_id": 7, "student_number": "1001007", "first_name": "Olivia", "last_name": "Green", "status": "Enrolled" },
+    { "student_id": 2, "student_number": "1001002", "first_name": "John", "last_name": "Miller", "status": "Enrolled" },
+    { "student_id": 1, "student_number": "1001001", "first_name": "Nathan", "last_name": "Reinoehl", "status": "Enrolled" }
   ]
 }
 ```
 
-| Status | `error.code` | When |
+A session with no students gets `200` with `"students": []` and `"enrolled_count": 0`.
+
+The access check runs in this order:
+
+1. `requireRole('instructor', 'administrator')` blocks students and logged-out users.
+2. The session must exist, or `404 SESSION_NOT_FOUND`.
+3. An administrator passes. An instructor passes only if `Session.instructor_id` equals `req.user.instructor_id`. Otherwise `403 FORBIDDEN`.
+
+| Status | `error.code` | `error.message` |
 | --- | --- | --- |
-| 401 | `NOT_LOGGED_IN` | No valid instructor or administrator token |
-| 403 | `FORBIDDEN` | The caller is a student, an instructor not assigned to this session, or anyone else |
-| 404 | `SESSION_NOT_FOUND` | No session with that `session_id` |
+| 401 | `NOT_LOGGED_IN` | Please log in to continue. |
+| 403 | `FORBIDDEN` | You do not have access to this. (a student) |
+| 403 | `FORBIDDEN` | You can only view rosters for sessions you teach. (another instructor) |
+| 404 | `SESSION_NOT_FOUND` | Session not found. |
 
-## Proposed endpoints (not named in the backlog)
+## Future release endpoints (Story 8)
 
-Three endpoints are needed by user stories that name no endpoint. They are proposals for the team to accept or change.
+These are planned for the future release and not built in Sprint 3.
 
-| Endpoint | Needed by | What it does |
-| --- | --- | --- |
-| `GET /courses/{id}` | Story 4, View Course Details | `{id}` is the `course_id`. Returns one course in the same shape as an item of `GET /courses`, with its `prerequisites` and `sessions`. `404 COURSE_NOT_FOUND` if it does not exist. The details page's `?course=` link parameter then carries a `course_id`, not a course code. |
-| `POST /sessions` | Story 8, Administrator Manages Sessions | Creates a session. Body: `course_id`, `instructor_id`, `section`, `days`, `time`, `location`, `max_enrollment`. Returns `201` with the new session, including its `session_id`. Administrator token only. `404 COURSE_NOT_FOUND` or `404 INSTRUCTOR_NOT_FOUND` if either id is unknown. |
-| `PUT /sessions/{id}` | Story 8, Administrator Manages Sessions | `{id}` is the `session_id`. Updates any of the same fields. Returns `200` with the updated session. Administrator token only. Lowering `max_enrollment` below the current `enrolled_count` returns `409 BELOW_CURRENT_ENROLLMENT`. |
+| Endpoint | What it does |
+| --- | --- |
+| `POST /sessions` | **Role:** `administrator`. Creates a session. Body: `course_id`, `instructor_id`, `section`, `days`, `time`, `location`, `max_enrollment`. Returns `201` with the new session, including its `session_id`. `404 COURSE_NOT_FOUND` or `404 INSTRUCTOR_NOT_FOUND` if either id is unknown. |
+| `PUT /sessions/{id}` | **Role:** `administrator`. `{id}` is the `session_id`. Updates any of the same fields. Returns `200` with the updated session. Lowering `max_enrollment` below the current `enrolled_count` returns `409 BELOW_CURRENT_ENROLLMENT`. |
 
-Stories 5, 10, and 11 need no student-facing endpoint. The nightly catalog update, the daily enrollment report, and the confirmation email are background jobs. The catalog is read-only inside this system, so there is no `POST` or `PUT` for `/courses`.
+Stories 5, 10, and 11 need no page-facing endpoint. The nightly catalog update, the daily enrollment report, and the confirmation email are background jobs. The catalog is read-only inside this system, so there is no `POST` or `PUT` for `/courses`.
 
 ## Gaps between the schema and what the app needs
 
-The password columns and the data script are now fixed in the SQL files. What is left are decisions the team should make before building.
-
-- [ ] **No administrator.** The roster and session-management endpoints allow administrators, but no table or column says who is one. Add an `Administrator` table or a `role` column.
-- [ ] **No way to know a course was completed.** `PREREQUISITE_MISSING` needs the student's finished courses. Decide whether `Enrollment.status` gets a `Completed` value or a separate record is kept.
-- [ ] **Duplicate registrations are not blocked by the database.** `Enrollment` has no unique rule on `student_id` and `session_id`. Add one as a safety net, and keep the API check that blocks the same course in another section.
+- [x] **No administrator.** Fixed: `Account.role` includes `administrator`, and the test data has an `admin` account.
+- [x] **No way to know a course was completed.** Fixed: the `CompletedCourse` table.
+- [x] **Duplicate registrations are not blocked by the database.** Fixed: `Enrollment` has a unique rule on `student_id` and `session_id`.
 - [ ] **Modality has no column.** The search and details pages show In-Person, Hybrid, or Online, but the schema has no field for it. The data script puts `Online` and `Hybrid` in `Session.location`. Add a `modality` column to `Session`, or drop it from the pages.
-- [ ] **The pages still use test data.** `course-data.js` and `auth.js` hold courses such as `INFO 320` and `CS 301` and student IDs such as `1001001`. The database has `INFO 465`, `INFO 370`, and student IDs 1 to 10. When the API goes live the pages call it instead, and the test cases in `tests/` need the new IDs.
-- [ ] **Waitlist.** The roster page shows `Waitlisted`, but registration refuses a full session, so nothing creates a waitlisted `Enrollment`. Either remove the status from the page or add a waitlist rule.
+- [ ] **Waitlist.** Registration refuses a full session, so nothing creates a `Waitlisted` enrollment. The sample roster page still shows one. Remove it when the roster page is built (task 12.3).
+- [ ] **Old test cases.** `tests/login-tests.md` still describes the Sprint 1 login with student numbers. It needs new cases for `POST /login` with usernames and for each role.
