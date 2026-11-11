@@ -30,6 +30,7 @@ app.get('/health', async (req, res) => {
 app.use('/', require('./routes/auth'));
 app.use('/courses', require('./routes/courses'));
 app.use('/sessions', require('./routes/sessions'));
+app.use('/students', require('./routes/students'));
 
 const PORT = Number(process.env.PORT) || 3000;
 
