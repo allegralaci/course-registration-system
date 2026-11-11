@@ -1,0 +1,139 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Schedule - Course Registration System</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <script src="auth.js"></script>
+    <script>requireLogin();</script>
+</head>
+
+<body>
+
+<header>
+    <h1>Course Registration System</h1>
+
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="login.html">Log In</a>
+        <a href="course-search.html">Course Search</a>
+        <a href="course-details.html">Course Details</a>
+        <a href="student-registration.html">Student Registration</a>
+        <a href="my-schedule.html">My Schedule</a>
+        <a href="instructor-schedule.html">Instructor Schedule</a>
+        <a href="session-enrollment.html">Session Enrollment</a>
+    </nav>
+</header>
+
+<main>
+
+    <h2>My Schedule</h2>
+
+    <p id="schedule-status">Loading your schedule...</p>
+
+    <div id="schedule-results"></div>
+
+</main>
+
+<footer>
+    <p>Course Registration System</p>
+</footer>
+
+<script>
+    // Get the logged-in student's ID.
+    const studentId = getLoggedInStudent();
+
+    // Display the student's enrolled sessions.
+    async function loadSchedule() {
+        const status = document.getElementById("schedule-status");
+        const results = document.getElementById("schedule-results");
+
+        try {
+            const response = await apiFetch(
+                "/students/" + encodeURIComponent(studentId) + "/enrollments"
+            );
+
+            if (!response.ok) {
+                status.textContent =
+                    response.data.error?.message ||
+                    "Could not load your schedule.";
+                return;
+            }
+
+            const enrollments = response.data.enrollments || [];
+
+            results.innerHTML = "";
+
+            // Show a message if the student has no enrollments.
+            if (enrollments.length === 0) {
+                status.textContent =
+                    "You are not currently enrolled in any sessions.";
+                return;
+            }
+
+            status.textContent =
+                "You are enrolled in " + enrollments.length + " session(s).";
+
+            // Create a table of enrolled sessions.
+            const table = document.createElement("table");
+
+            const headers = [
+                "Course",
+                "Section",
+                "Days",
+                "Time",
+                "Location",
+                "Instructor"
+            ];
+
+            const headerRow = document.createElement("tr");
+
+            headers.forEach(function(header) {
+                const th = document.createElement("th");
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+
+            table.appendChild(headerRow);
+
+            enrollments.forEach(function(enrollment) {
+                const row = document.createElement("tr");
+
+                const values = [
+                    enrollment.course,
+                    enrollment.section,
+                    enrollment.days,
+                    enrollment.time,
+                    enrollment.location,
+                    enrollment.instructor
+                ];
+
+                values.forEach(function(value) {
+                    const cell = document.createElement("td");
+                    cell.textContent = value ?? "Not specified";
+                    row.appendChild(cell);
+                });
+
+                table.appendChild(row);
+            });
+
+            results.appendChild(table);
+
+        } catch (error) {
+            if (error.message !== "NOT_LOGGED_IN") {
+                console.error("Schedule loading failed:", error);
+                status.textContent =
+                    "Unable to load your schedule. Please try again.";
+            }
+        }
+    }
+
+    loadSchedule();
+</script>
+
+</body>
+</html>
