@@ -1,6 +1,7 @@
-// routes/sessions.js - GET /sessions/available and POST /sessions/:id/register.
-// Matches the endpoints described in API_CONTRACT.md. Both need a logged-in student,
-// checked by the shared requireRole in middleware/auth.js.
+// routes/sessions.js - GET /sessions/available, POST /sessions/:id/register,
+// and GET /sessions/:id/roster. Matches the endpoints described in API_CONTRACT.md.
+// The first two need a logged-in student. The roster needs the session's assigned
+// instructor or an administrator. Roles are checked by requireRole in middleware/auth.js.
 const express = require('express');
 const db = require('../db');
 const { requireRole } = require('../middleware/auth');
@@ -62,6 +63,81 @@ router.get('/available', requireRole('student'), async (req, res) => {
   } catch (err) {
     console.error('GET /sessions/available failed:', err.code || err.message);
     sendError(res, 500, 'SERVER_ERROR', 'Could not load sessions. Please try again.');
+  }
+});
+
+// GET /sessions/:id/roster - the students in one session, with the enrolled count
+// and the maximum. The access check runs in the order the contract gives:
+//   1. requireRole blocks students and logged-out users (403 / 401).
+//   2. The session must exist (404).
+//   3. An administrator passes. An instructor passes only for a session they teach (403).
+router.get('/:id/roster', requireRole('instructor', 'administrator'), async (req, res) => {
+  const sessionId = Number(req.params.id);
+
+  if (!Number.isInteger(sessionId) || sessionId <= 0) {
+    return sendError(res, 404, 'SESSION_NOT_FOUND', 'Session not found.');
+  }
+
+  try {
+    const [sessions] = await db.query(
+      `SELECT s.session_id, s.instructor_id, s.section, s.days, s.time, s.location,
+              s.max_enrollment, c.course_id, c.number, c.name
+       FROM Session s
+       JOIN Course c ON c.course_id = s.course_id
+       WHERE s.session_id = ?`,
+      [sessionId]
+    );
+
+    if (sessions.length === 0) {
+      return sendError(res, 404, 'SESSION_NOT_FOUND', 'Session not found.');
+    }
+
+    const session = sessions[0];
+
+    // The instructor comes from the login token, so typing another session's
+    // roster URL does not get around this check.
+    if (req.user.role === 'instructor' && session.instructor_id !== req.user.instructor_id) {
+      return sendError(res, 403, 'FORBIDDEN', 'You can only view rosters for sessions you teach.');
+    }
+
+    const [rows] = await db.query(
+      `SELECT st.student_id, st.student_number, st.first_name, st.last_name, e.status
+       FROM Enrollment e
+       JOIN Student st ON st.student_id = e.student_id
+       WHERE e.session_id = ?
+       ORDER BY st.last_name, st.first_name`,
+      [sessionId]
+    );
+
+    // enrolled_count counts only 'Enrolled' rows, the same way registration
+    // counts seats, so the roster and the seat check always agree.
+    const enrolledCount = rows.filter((row) => row.status === 'Enrolled').length;
+
+    res.json({
+      session_id: session.session_id,
+      section: session.section,
+      days: session.days,
+      time: session.time,
+      location: session.location,
+      course: {
+        course_id: session.course_id,
+        number: session.number,
+        name: session.name
+      },
+      enrolled_count: enrolledCount,
+      max_enrollment: session.max_enrollment,
+      students: rows.map((row) => ({
+        student_id: row.student_id,
+        student_number: row.student_number,
+        first_name: row.first_name,
+        last_name: row.last_name,
+        status: row.status
+      }))
+    });
+  } catch (err) {
+    // Log only the error code. Details could reveal database settings.
+    console.error('GET /sessions/:id/roster failed:', err.code || err.message);
+    sendError(res, 500, 'SERVER_ERROR', 'Could not load the roster. Please try again.');
   }
 });
 
