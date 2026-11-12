@@ -101,8 +101,10 @@ async function loadCourses() {
                 : "Not assigned"
         ).join(", ")
         : "Not assigned";
-            document.getElementById("course-prerequisites").textContent =
-                course.prerequisites || "None listed";
+    document.getElementById("course-prerequisites").textContent =
+        Array.isArray(course.prerequisites) && course.prerequisites.length > 0
+            ? course.prerequisites.map(prerequisite => prerequisite.number).join(", ")
+            : "None listed";
             document.getElementById("course-modality").textContent =
                 course.modality || "Not specified";
             document.getElementById("course-maximum-enrollment").textContent =
@@ -178,11 +180,6 @@ section.appendChild(registerButton);
         displayCourse(selectedCourse);
     }
 });
-
-            if (selectedCourse) {
-                displayCourse(selectedCourse);
-            }
-        });
 
        async function initializeCourseDetails() {
     await loadCourses();
