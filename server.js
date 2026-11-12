@@ -31,6 +31,7 @@ app.use('/', require('./routes/auth'));
 app.use('/courses', require('./routes/courses'));
 app.use('/sessions', require('./routes/sessions'));
 app.use('/students', require('./routes/students'));
+app.use('/instructors', require('./routes/instructors'));
 
 const PORT = Number(process.env.PORT) || 3000;
 
