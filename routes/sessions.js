@@ -190,7 +190,38 @@ router.post('/:id/register', requireRole('student'), async (req, res) => {
         'You are already registered for ' + session.number + '.');
     }
 
-    // The prerequisite check (Story 7) is added in Sprint 3.
+    // Check whether the student has completed all required prerequisites.
+    const [missingPrerequisites] = await conn.query(
+      `SELECT required.number, required.name
+       FROM Prerequisite p
+       JOIN Course required
+         ON required.course_id = p.prerequisite_course_id
+       LEFT JOIN CompletedCourse cc
+         ON cc.course_id = p.prerequisite_course_id
+         AND cc.student_id = ?
+       WHERE p.course_id = ?
+         AND cc.course_id IS NULL
+       ORDER BY required.number`,
+      [req.student_id, session.course_id]
+    );
+
+    if (missingPrerequisites.length > 0) {
+      await conn.rollback();
+
+      const missing = missingPrerequisites.map(
+        (course) => course.number + ' - ' + course.name
+      );
+
+      return res.status(403).json({
+        error: {
+          code: 'MISSING_PREREQUISITES',
+          message: 'You are missing the following prerequisites: ' +
+            missing.join(', '),
+          missing_prerequisites: missing
+        }
+      });
+    }
+
 
     const [counts] = await conn.query(
       `SELECT COUNT(*) AS enrolled_count
