@@ -257,3 +257,58 @@ th {
 [hidden] {
     display: none !important;
 }
+
+   notepad public\style.css/* Course Search: rounded "bubble" buttons */
+.button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.search-button,
+.clear-button,
+.register-link {
+    display: inline-block;
+    padding: 10px 26px;
+    border: 2px solid #1f3c5b;
+    border-radius: 999px;
+    font-size: 16px;
+    font-weight: bold;
+    line-height: 1.2;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.search-button,
+.register-link {
+    background-color: #1f3c5b;
+    color: white;
+}
+
+.clear-button {
+    background-color: white;
+    color: #1f3c5b;
+}
+
+.search-button:hover,
+.register-link:hover {
+    background-color: #315b89;
+    border-color: #315b89;
+}
+
+.clear-button:hover {
+    background-color: #eef3f9;
+}
+
+.search-button:focus-visible,
+.clear-button:focus-visible,
+.register-link:focus-visible {
+    outline: 3px solid #7aa7d9;
+    outline-offset: 2px;
+}
+
+.register-link {
+    margin: 12px 0 24px;
+}
