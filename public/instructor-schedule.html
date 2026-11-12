@@ -30,37 +30,97 @@
         <h2>Instructor Schedule</h2>
         <p>Your assigned course sessions.</p>
 
+        <p id="schedule-status">Loading your sessions...</p>
+
         <div class="schedule-section">
             <h3>Assigned Sessions</h3>
 
-            <table>
-                <tr>
-                    <th>Course</th>
-                    <th>Section</th>
-                    <th>Days</th>
-                    <th>Time</th>
-                    <th>Location</th>
-                </tr>
-
-                <tr>
-                    <td>INFO 300</td>
-                    <td>001</td>
-                    <td>MWF</td>
-                    <td>10:00 AM - 10:50 AM</td>
-                    <td>Business Building 210</td>
-                </tr>
-
-                <tr>
-                    <td>INFO 320</td>
-                    <td>002</td>
-                    <td>TR</td>
-                    <td>1:00 PM - 2:15 PM</td>
-                    <td>Business Building 305</td>
-                </tr>
-            </table>
+            <div id="schedule-results"></div>
         </div>
 
     </main>
+
+    <script>
+        // Shows the logged-in instructor's assigned sessions, read from the
+        // database through GET /instructors/:id/sessions.
+        async function loadSessions() {
+            const status = document.getElementById("schedule-status");
+            const results = document.getElementById("schedule-results");
+            const user = getCurrentUser();
+
+            if (!user || user.role !== "instructor" || !user.instructor_id) {
+                status.textContent = "Please log in as an instructor to see your sessions.";
+                return;
+            }
+
+            try {
+                const response = await apiFetch(
+                    "/instructors/" + encodeURIComponent(user.instructor_id) + "/sessions"
+                );
+
+                if (!response.ok) {
+                    status.textContent =
+                        (response.data.error && response.data.error.message) ||
+                        "Could not load your sessions.";
+                    return;
+                }
+
+                const sessions = response.data.sessions || [];
+
+                results.innerHTML = "";
+
+                if (sessions.length === 0) {
+                    status.textContent = "You have no assigned sessions yet.";
+                    return;
+                }
+
+                status.textContent =
+                    "You are assigned to " + sessions.length + " session(s).";
+
+                const table = document.createElement("table");
+                const headerRow = document.createElement("tr");
+
+                ["Course", "Section", "Days", "Time", "Location"].forEach(function(header) {
+                    const th = document.createElement("th");
+                    th.textContent = header;
+                    headerRow.appendChild(th);
+                });
+
+                table.appendChild(headerRow);
+
+                sessions.forEach(function(session) {
+                    const row = document.createElement("tr");
+
+                    // Text is set with textContent, so course names are never run as HTML.
+                    const values = [
+                        session.course.number + " - " + session.course.name,
+                        session.section,
+                        session.days,
+                        session.time,
+                        session.location
+                    ];
+
+                    values.forEach(function(value) {
+                        const cell = document.createElement("td");
+                        cell.textContent = value ?? "Not specified";
+                        row.appendChild(cell);
+                    });
+
+                    table.appendChild(row);
+                });
+
+                results.appendChild(table);
+            } catch (error) {
+                // A 401 already sent the user to the login page.
+                if (error.message !== "NOT_LOGGED_IN") {
+                    console.error("Loading sessions failed:", error);
+                    status.textContent = "Unable to load your sessions. Please try again.";
+                }
+            }
+        }
+
+        loadSessions();
+    </script>
 
 </body>
 </html>
